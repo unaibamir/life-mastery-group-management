@@ -99,13 +99,13 @@ class Life_Mastery_Group_Management {
 	 */
 	private function load_dependencies() {
 
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/life-mastery-dbs.php';
+
 		/**
 		 * The class responsible for orchestrating the actions and filters of the
 		 * core plugin.
 		 */
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-life-mastery-group-management-loader.php';
-
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/life-mastery-dbs.php';
 
 		/**
 		 * The class responsible for defining internationalization functionality
@@ -113,6 +113,7 @@ class Life_Mastery_Group_Management {
 		 */
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-life-mastery-group-management-i18n.php';
 
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-life-mastery-group-management-helpers.php';
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-life-mastery-group-management-logging.php';
 
 		/**
@@ -159,7 +160,7 @@ class Life_Mastery_Group_Management {
 		$plugin_admin = new Life_Mastery_Group_Management_Admin( $this->get_plugin_name(), $this->get_version() );
 
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_styles' );
-		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts' );
+		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts', 999 );
 		$this->loader->add_action( 'add_meta_boxes', $plugin_admin, 'add_meta_boxes' );
 		$this->loader->add_action( 'save_post', $plugin_admin, 'ld_group_save_post', 10, 3 );
 
@@ -179,7 +180,18 @@ class Life_Mastery_Group_Management {
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_styles' );
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_scripts' );
 
+		$this->loader->add_action( 'init', $plugin_public, 'init' );
+
 		add_shortcode( 'lm_group_management', array( $plugin_public, 'lm_group_management_shortcode_callback' ) );
+
+		$this->loader->add_action( 'admin_post_lm_group_schedule_callback', $plugin_public, 'lm_group_schedule_save_callback' );
+
+		$this->loader->add_action( 'admin_post_lm_group_zoom_callback', $plugin_public, 'lm_group_zoom_save_callback' );
+
+		$this->loader->add_action( 'admin_post_lm_group_attendance_callback', $plugin_public, 'lm_group_attendance_save_callback' );
+
+
+		$this->loader->add_action( 'wp_ajax_lm_load_group_data', $plugin_public, 'lm_group_details_ajax_callback' );
 
 	}
 

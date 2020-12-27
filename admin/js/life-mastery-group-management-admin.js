@@ -29,4 +29,6 @@
 	 * practising this, we should strive to set a better example in our own work.
 	 */
 
+	$(".lm-select2").select2({width: "100%"});
+
 })( jQuery );

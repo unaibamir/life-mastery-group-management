@@ -12,12 +12,12 @@ if ( $wpdb->get_var( "SHOW TABLES LIKE '$table_name'" ) != $table_name ) {
 	`id` int(11) NOT NULL AUTO_INCREMENT,
 	`group_id` int(11) NOT NULL,
 	`user_id` int(11) NOT NULL,
-	`ip_address` varchar(16) DEFAULT NULL,
-	`device_id` text DEFAULT NULL,
-	`log_by_user_id` int(11) DEFAULT NULL COMMENT 'The user_id who generate this log',
 	`attendance_type` ENUM('absent','present') NOT NULL DEFAULT 'absent',
+	`log_by_user_id` int(11) DEFAULT NULL COMMENT 'The user_id who generate this log',
+	`date` varchar(255) NOT NULL,
+	`ip_address` varchar(16) DEFAULT NULL,
 	`comment` TEXT NOT NULL,
-	`created_at` datetime NOT NULL,
+	`created_at` datetime DEFAULT CURRENT_TIMESTAMP,
 	`modified_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NULL,
 	PRIMARY KEY (`id`)
 	) $charset_collate;";

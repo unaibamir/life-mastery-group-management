@@ -12,6 +12,8 @@
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) exit;
 
+if( class_exists('LifeMystery_Logging') ) return;
+
 /**
  * LifeMystery_Logging Class
  *

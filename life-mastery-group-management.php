@@ -15,7 +15,7 @@
  * @wordpress-plugin
  * Plugin Name:       Life Mastery Group Management
  * Plugin URI:        https://unaibamir.com
- * Description:       This is a short description of what the plugin does. It's displayed in the WordPress admin area.
+ * Description:       This is a custom plugin which creates the option for LearnDash group leaders to manage their groups for drip lessons and other info. 
  * Version:           1.0.0
  * Author:            Unaib Amir
  * Author URI:        https://unaibamir.com

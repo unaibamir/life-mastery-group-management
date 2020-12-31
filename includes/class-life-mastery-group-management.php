@@ -184,14 +184,15 @@ class Life_Mastery_Group_Management {
 
 		add_shortcode( 'lm_group_management', array( $plugin_public, 'lm_group_management_shortcode_callback' ) );
 
-		$this->loader->add_action( 'admin_post_lm_group_schedule_callback', $plugin_public, 'lm_group_schedule_save_callback' );
+		$this->loader->add_action( 'wp_ajax_lm_group_schedule_callback', $plugin_public, 'lm_group_schedule_save_callback' );
 
-		$this->loader->add_action( 'admin_post_lm_group_zoom_callback', $plugin_public, 'lm_group_zoom_save_callback' );
+		$this->loader->add_action( 'wp_ajax_lm_group_zoom_callback', $plugin_public, 'lm_group_zoom_save_callback' );
 
-		$this->loader->add_action( 'admin_post_lm_group_attendance_callback', $plugin_public, 'lm_group_attendance_save_callback' );
-
+		$this->loader->add_action( 'wp_ajax_lm_group_attendance_callback', $plugin_public, 'lm_group_attendance_save_callback' );
 
 		$this->loader->add_action( 'wp_ajax_lm_load_group_data', $plugin_public, 'lm_group_details_ajax_callback' );
+
+		$this->loader->add_action( 'wp_loaded', $plugin_public, 'lm_infusionsoft_listner_callback' );
 
 	}
 

@@ -126,14 +126,13 @@ class Life_Mastery_Group_Management_Public {
 	public function lm_group_management_shortcode_callback() {
 
 		if( !is_user_logged_in() ) {
-			return;
+			$data = $this->get_login_form();
+			return $data;
 		}
 		
 		$user = wp_get_current_user();
 
 		ob_start();
-		
-		
 		
 		if( learndash_is_group_leader_user( $user ) ) {
 			echo $this->lm_group_leader_management( $user );
@@ -198,6 +197,14 @@ class Life_Mastery_Group_Management_Public {
 	public function lm_group_member_management( $user ) {
 
 		global $post;
+
+		if( isset($_GET['lm_group_id'], $_GET['lm_action']) && !empty($_GET['lm_group_id']) && $_GET['lm_action'] == 'edit' ) {
+
+			$this->getGroupEditPages( $user );
+			return;
+		}
+
+		$user_admin_groups  = learndash_get_administrators_group_ids( $user->ID );
 		
 		$user_group_ids     = learndash_get_users_group_ids( $user->ID );
         $user_group_ids     = !empty($user_admin_groups) ? array_merge($user_admin_groups, $user_group_ids) : $user_group_ids;
@@ -208,6 +215,8 @@ class Life_Mastery_Group_Management_Public {
             $common_group_ids = array_diff( $common_group_ids, $hidden_groups );
         }
 
+        $common_group_ids = array_unique($common_group_ids);
+
         if( !empty( $common_group_ids ) ) {
 
 			?>
@@ -216,6 +225,16 @@ class Life_Mastery_Group_Management_Public {
 		    <?php
 
 		    foreach ($common_group_ids as $group_id) {
+		    	$is_leader = false;
+		    	$has_group_leader = learndash_get_groups_administrators( $group_id, true );
+				if ( ! empty( $has_group_leader ) ) {
+					foreach ( $has_group_leader as $leader ) {
+						if ( learndash_is_group_leader_of_user( $leader->ID, $user->ID ) ) {
+							$is_leader = true;
+							continue;
+						}
+					}
+				}
 
 		    	$group_manage_link = add_query_arg(array(
 		    		'lm_group_id'	=>	$group_id,
@@ -228,6 +247,16 @@ class Life_Mastery_Group_Management_Public {
 		    		<?php echo get_the_title($group_id); ?>
 		    	</h5>
 		    	<div class="user-groups-table" id="group-<?php echo $group_id; ?>">
+
+			    	<?php
+			    	if( $is_leader ) {
+			    		?>
+			    		<!-- <span class="alignright lm-group-manage-link">
+			    			<a href="<?php echo esc_url( $group_manage_link ) ?>"><i class="fa fa-edit"></i> <?php _e('Manage Group'); ?></a>
+			    		</span> -->
+			    		<?php
+			    	}
+			    	?>
 
 		    		<?php echo LM_Helper::get_group_details_ajax($group_id); ?>
 		    		
@@ -303,7 +332,7 @@ class Life_Mastery_Group_Management_Public {
 
 			<div id="item-body" role="main" class="clearfix lm-group-manage-content" style="padding: 0">
 				<?php
-
+				$this->show_notifications();
 				call_user_func( array( $this, $tabs[$current_tab]['callback'] ) );
 				?>
 			</div>
@@ -318,12 +347,17 @@ class Life_Mastery_Group_Management_Public {
 		$group_id 		=  	isset($_GET['lm_group_id']) ? $_GET['lm_group_id'] : 0;
 		$group_courses 	=	learndash_group_enrolled_courses( $group_id );
 		$course_id 		= 	$group_courses[0];
+		
 		$group_data 	= 	get_post_meta( $group_id, 'lm_group_data', true );
 		$group_start_date 	= 	get_post_meta( $group_id, 'lm_course_start_date', true );
 		//dd($group_data);
 
-		$course_lessons = learndash_get_course_lessons_list( $course_id, array( 'sfwd-lessons' ) );
-		$total_rows 	= ceil( count($course_lessons) / 2 );
+		$ld_course_steps_object = LDLMS_Factory_Post::course_steps( $course_id );
+		$lesson_ids = $ld_course_steps_object->get_children_steps( $course_id, 'sfwd-lessons' );
+		/*dd($lesson_ids);
+		$course_lessons = learndash_get_course_lessons_list( $course );
+		dd($course_lessons);*/
+		$total_rows 	= ceil( count($lesson_ids) / 2 );
 		//$total_rows 	= $total_rows + count( $sections );
 		$lessons 		= array();
 		array_unshift($lessons , array(
@@ -333,12 +367,12 @@ class Life_Mastery_Group_Management_Public {
 			)
 		));
 		
-		foreach ($course_lessons as $lesson) {
+		foreach ($lesson_ids as $lesson_id) {
 			$lessons[] 	= array(
 				'post' => (object) array(
-					'ID'			=>	$lesson['post']->ID,
+					'ID'			=>	$lesson_id,
 					//'post_title' 	=>	sprintf(__('Lesson %s'), $lesson['sno'] )
-					'post_title' 	=>	$lesson['post']->post_title
+					'post_title' 	=>	get_the_title( $lesson_id )
 				)
 			);
 		}
@@ -369,7 +403,7 @@ class Life_Mastery_Group_Management_Public {
 		
 		?>
 
-		<form action="<?php echo admin_url( 'admin-post.php' ) ?>" class="standard-form base" method="POST" autocomplete="off">
+		<form action="<?php echo admin_url( 'admin-ajax.php' ) ?>" class="standard-form base" method="POST" autocomplete="off">
 
 			<input type="hidden" name="action" value="lm_group_schedule_callback">
 			
@@ -379,8 +413,8 @@ class Life_Mastery_Group_Management_Public {
 						<tr>
 							<th class="" style="width: 40px;"><?php echo __('Call #');?></th>
 							<th class="">&nbsp;</th>
-							<th class="" style="width: 110px;"><?php echo __('Class Date');?></th>
-							<th class="" style="width: 110px;"><?php echo __('Discuss Date');?></th>
+							<th class="" style="width: 110px;"><?php echo __('Availability Date');?></th>
+							<th class="" style="width: 110px;"><?php echo __('Review Date');?></th>
 							<th class=""><?php echo __('Class Agenda - Review:');?></th>
 							<th class=""><?php echo __('Leading the discussion');?></th>
 						</tr>
@@ -404,13 +438,13 @@ class Life_Mastery_Group_Management_Public {
 								<td style="width: 40px;"><?php echo $call; ?></td>
 								<td style="width: 70px;"><?php echo $call_text; ?></td>
 								<td>
-									<input type="text" name="lesson_date[<?php echo $counter; ?>]" class="<?php echo $call == 1 ? "": "lesson_date"; ?>" value="<?php echo $group_data['lesson_dates'][$counter]; ?>" <?php echo $call == 1 ? "readonly": ""; ?> >
-								</td>
-								<td>
 									<input type="text" name="lesson_review_date[<?php echo $counter; ?>]" class="<?php echo $call <= 2 ? "": "lesson_review_date"; ?>" value="<?php echo $group_data['lesson_review_dates'][$counter]; ?>" <?php echo $call <= 2 ? "readonly": ""; ?> >
 									<?php if( $call > 2 ) {
 
 									} ?>
+								</td>
+								<td>
+									<input type="text" name="lesson_date[<?php echo $counter; ?>]" class="<?php echo $call == 1 ? "": "lesson_date"; ?>" value="<?php echo $group_data['lesson_dates'][$counter]; ?>" <?php echo $call == 1 ? "readonly": ""; ?> >
 								</td>
 								<td>
 									<select name="lm_lessons[<?php echo $counter; ?>][]" id="lessons-<?php echo $counter; ?>" class="lesson_select" multiple="multiple" >
@@ -613,12 +647,19 @@ class Life_Mastery_Group_Management_Public {
 		$group_id 		=  	isset($_GET['lm_group_id']) ? $_GET['lm_group_id'] : 0;
 
 		$group_zoom 	= 	get_post_meta( $group_id, 'lm_group_zoom_info', true );
+		$settings = array(
+			'media_buttons'	=>	false,
+			'quicktags'		=>	false,
+			'teeny'			=>	true
+
+		);
 
 		?>
-		<form action="<?php echo admin_url( 'admin-post.php' ) ?>" class="standard-form base" method="POST" autocomplete="off">
+		<form action="<?php echo admin_url( 'admin-ajax.php' ) ?>" class="standard-form base" method="POST" autocomplete="off">
 			<input type="hidden" name="action" value="lm_group_zoom_callback">
 
-			<textarea name="lm_group_zoom_info" id="message_content" cols="30" rows="30"><?php echo $group_zoom; ?></textarea>
+			<!-- <textarea name="lm_group_zoom_info" id="message_content" cols="30" rows="30"><?php echo $group_zoom; ?></textarea> -->
+			<?php wp_editor( $group_zoom, 'lm_group_zoom_info', $settings ) ?>
 
 			<div class="submit">
 				<input type="submit" name="lm_group_attendance_save" id="lm_group_attendance_save" value="Save Changes ">
@@ -633,15 +674,15 @@ class Life_Mastery_Group_Management_Public {
 
 	public function lm_group_zoom_save_callback()
 	{
-
+		
 		if ( ! isset( $_POST['lm_group_zoom_save_wpnonce'] )  || ! wp_verify_nonce( $_POST['lm_group_zoom_save_wpnonce'], 'lm_group_zoom_save' ) ) {
 			wp_die( __('Oops, something went wrong with your submission. Please try again.'), __('something went wrong!') );
 		}
-
+		
 		update_post_meta( $_POST['lm_group_id'], 'lm_group_zoom_info', $_POST['lm_group_zoom_info'], '' );
 
 		$redirect_url = $_POST['_wp_http_referer'];
-		//$redirect_url = add_query_arg( '' );
+		//$redirect_url = add_query_arg( array( 'lm-message' => 'saved', 'lm-status' => 'success' ), $redirect_url );
 		wp_safe_redirect( $redirect_url );
 		exit;
 	}
@@ -656,7 +697,7 @@ class Life_Mastery_Group_Management_Public {
 		
 		?>
 
-		<form action="<?php echo admin_url( 'admin-post.php' ) ?>" class="standard-form base" method="POST" autocomplete="off">
+		<form action="<?php echo admin_url( 'admin-ajax.php' ) ?>" class="standard-form base" method="POST" autocomplete="off">
 
 			<input type="hidden" name="action" value="lm_group_attendance_callback">
 			
@@ -727,7 +768,7 @@ class Life_Mastery_Group_Management_Public {
 
 		?>
 
-		<form action="<?php echo admin_url( 'admin-post.php' ) ?>" id="signup_form" class="standard-form base" method="POST" autocomplete="off">
+		<form action="<?php echo admin_url( 'admin-ajax.php' ) ?>" id="signup_form" class="standard-form base" method="POST" autocomplete="off">
 
 			<input type="hidden" name="action" value="lm_group_attendance_callback">
 
@@ -880,11 +921,95 @@ class Life_Mastery_Group_Management_Public {
 			case 'zoom':
 				echo LM_Helper::get_group_zoom_info( $group_id );
 				break;
+		}
+
+		wp_die();
+	}
+
+	public function get_login_form()
+	{
+		ob_start();
+
+		?>
+<h3 class="login-text">Please login to get started.</h3>
+<div id="login-page-form">
+[i4w_login_form label_username='Email' redirect='#use_last_page#']
+[i4w_is_logged_in]
+  Hi [i4w_db_FirstName], You already logged in.
+[/i4w_is_logged_in]
+<a href="<?php echo home_url(''); ?>/wp-login.php?action=lostpassword">Lost Your Password?</a>
+</div>		
+		<?php
+
+		$output = ob_get_contents();
+        ob_end_clean();
+        return do_shortcode( $output );
+	}
+
+
+	public function lm_infusionsoft_listner_callback() {
+		global $lm_logs;
+	
+		if( !function_exists('lm_debug_log') ) {
+			return;
+		}
+
+		if( !isset($_GET['lm-listner']) ) {
+			return;
+		}
+
+
+		$arr_rh = json_decode( file_get_contents( 'php://input' ), TRUE );
+
+		if ( ! isset( $arr_rh['event_key'] ) OR ! $arr_rh['event_key'] OR ! isset( $arr_rh['object_type'] ) OR ! $arr_rh['object_type'] OR ! isset( $arr_rh['object_keys'] ) OR ! $arr_rh['object_keys'] OR ! isset( $arr_rh['api_url'] ) ) :
+			exit;
+		endif;
+
+		lm_debug_log( sprintf('LM Note: %s', maybe_serialize( $arr_rh ) )  );
+
+		if( $arr_rh['event_key'] == 'contactGroup.applied' ) {
+
+			foreach ($arr_rh['object_keys'] as $object) {
+				$tag_id = $object['tag_id'];
+				$contact_ids = array();
+				
+				foreach ($object['contact_details'] as $contact ) {
+					if( !in_array($contact['id'], $contact_ids) ) {
+						$contact_ids[] = $contact['id'];
+					}
+				}
+
+				if( !empty( $tag_id ) && !empty($contact_ids) ) {
+					LM_Helper::find_tag_group_assign_user( $tag_id, $contact_ids );
+				} else {
+					lm_debug_log( sprintf('LM Note: empty data %s', '' )  );
+				}
+				
+			}
+		}
+
+	}
+
+	public function show_notifications()
+	{
+		if( !isset($_GET['lm-message']) || isset($_GET['lm-message']) && empty($_GET['lm-message']) ) {
+			return;
+		}
+
+		$type 		= $_GET['lm-message'];
+		$message 	=	'';
+
+		switch( $type ) {
+			case 'saved': 
+				$message = __('Successfully Updated!');
 
 			default:
 				break;
 		}
 
-		wp_die();
+		?>
+		<div class="lm-message success"><?php echo wpautop( $message ); ?></div>
+		<?php
+
 	}
 }

@@ -236,10 +236,18 @@ class LM_Helper {
 		if( empty($attendance_dates) ) {
 			return __( 'No data available' );
 		}
+
+		$user = wp_get_current_user();
 		
 		if( empty($students) ) {
 			$students 			= 	learndash_get_groups_users( $group_id );
 		}
+
+		if( !learndash_is_group_leader_user( $user ) ) {
+			$students = array();
+			$students[] = $user;
+		}
+
 		$table 				= $wpdb->prefix . 'lm_attendance_logs';
 		$current_date 		= 	new DateTime();
 		
@@ -490,8 +498,11 @@ class LM_Helper {
 			return __( 'No data available' );
 		}
 
-		$course_lessons = learndash_get_course_lessons_list( $course_id, array( 'sfwd-lessons' ) );
-		$total_rows 	= ceil( count($course_lessons) / 2 );
+		$ld_course_steps_object = LDLMS_Factory_Post::course_steps( $course_id );
+		$lesson_ids = $ld_course_steps_object->get_children_steps( $course_id, 'sfwd-lessons' );
+
+		//$course_lessons = learndash_get_course_lessons_list( $course_id, array( 'sfwd-lessons' ) );
+		$total_rows 	= ceil( count($lesson_ids) / 2 );
 		//$total_rows 	= $total_rows + count( $sections );
 		$lessons 		= array();
 		array_unshift($lessons , array(
@@ -501,12 +512,12 @@ class LM_Helper {
 			)
 		));
 		
-		foreach ($course_lessons as $lesson) {
+		foreach ($lesson_ids as $lesson) {
 			$lessons[] 	= array(
 				'post' => (object) array(
-					'ID'			=>	$lesson['post']->ID,
+					'ID'			=>	$lesson_id,
 					//'post_title' 	=>	sprintf(__('Lesson %s'), $lesson['sno'] )
-					'post_title' 	=>	$lesson['post']->post_title
+					'post_title' 	=>	get_the_title( $lesson_id )
 				)
 			);
 		}
@@ -547,8 +558,8 @@ class LM_Helper {
 					<tr>
 						<th class="" style="width: 40px;"><?php echo __('Call #');?></th>
 						<th class="">&nbsp;</th>
-						<th class="" style="width: 110px;"><?php echo __('Class Date');?></th>
-						<th class="" style="width: 110px;"><?php echo __('Discuss Date');?></th>
+						<th class="" style="width: 110px;"><?php echo __('Availability Date');?></th>
+						<th class="" style="width: 110px;"><?php echo __('Review Date');?></th>
 						<th class=""><?php echo __('Class Agenda - Review:');?></th>
 						<th class=""><?php echo __('Leading the discussion');?></th>
 					</tr>
@@ -572,10 +583,10 @@ class LM_Helper {
 								<td style="width: 40px;"><?php echo $call; ?></td>
 								<td style="width: 90px;"><?php echo $call_text; ?></td>
 								<td>
-									<?php echo isset( $group_data['lesson_dates'][$counter] ) ? $group_data['lesson_dates'][$counter] : '' ; ?>
+									<?php echo isset( $group_data['lesson_review_dates'][$counter] ) ? $group_data['lesson_review_dates'][$counter] : ''; ?>
 								</td>
 								<td>
-									<?php echo isset( $group_data['lesson_review_dates'][$counter] ) ? $group_data['lesson_review_dates'][$counter] : ''; ?>
+									<?php echo isset( $group_data['lesson_dates'][$counter] ) ? $group_data['lesson_dates'][$counter] : '' ; ?>
 								</td>
 								<td>
 
@@ -661,6 +672,73 @@ class LM_Helper {
 
 		<?php
 
+	}
+
+
+	public static function find_tag_group_assign_user( $tag_id, $contact_ids = array() ) {
+
+		lm_debug_log( sprintf('LM Note: infusionSoft data recieved, tagID: %s contact_ids: %s', $tag_id, var_export($contact_ids, true) )  );
+
+		$args = array(
+			'post_type' 		=> 	'groups',
+			'post_status' 		=> 	'publish',
+			'posts_per_page'    => 	-1,
+			'meta_key'			=>	'lm_group_tag',
+			'meta_value'		=> 	$tag_id,
+		);
+		
+		$query = new WP_Query( $args );
+
+		if( is_array($query->posts) && !empty($query->posts) ) {
+			
+			$group_ids = wp_list_pluck( $query->posts, 'ID' );
+
+			if( empty( $group_ids ) ) {
+				return;
+			}
+
+			$user_args = array(
+				'meta_query'	=>	array(
+					array(
+						'key'		=>	'infusion4wp_user_id',
+						'value'		=> 	$contact_ids,
+						'compare'	=>	'IN'
+					)
+				),
+				'fields'		=>	'ID'		
+			);
+
+			$user_query = new WP_User_Query( $user_args );
+
+			$user_ids  = $user_query->get_results();
+
+			if( empty( $user_ids ) ) {
+				lm_debug_log( sprintf('LM Note: no users found against contact_ids: %s', $contact_ids )  );
+				return;
+			}
+
+			foreach ($user_ids as $user_id) {
+
+				foreach ($group_ids as $group_id) {
+
+					$is_member = learndash_is_user_in_group( $user_id, $group_id );
+					
+					if( !$is_member ) {
+						
+						$group_users 	= learndash_get_groups_user_ids( $group_id );
+
+						if( !in_array($user_id, $group_users) ) {
+							array_push($group_users, $user_id);
+						}
+						
+						learndash_set_groups_users( $group_id, $group_users );
+
+						lm_debug_log( sprintf('LM Note: user id: %s has been added into to group: %s', $user_id, $group_id )  );
+					}
+				}
+			}
+
+		}
 
 	}
 

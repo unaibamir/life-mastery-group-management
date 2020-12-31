@@ -38,6 +38,7 @@
 .lm-group-manage-area #signup_form .select2-selection {
     max-width: 550px;
     max-height: 100%;
+    border: none;
 }
 #buddypress table.profile-fields.group-attendance tr th, 
 #buddypress table.profile-fields.group-attendance tr td {
@@ -76,4 +77,38 @@ h5.widgettitle.group-title.ui-accordion-header .ui-accordion-header-icon {
 }
 #buddypress.user-groups-area table.profile-fields {
     margin-bottom: 0;
+}
+
+.lm-message.success {
+    background-color: #6cdaa5;
+    color: #FFF;
+    padding: 4px 10px;
+    -webkit-animation-name: Disappear;
+    animation-name: Disappear;
+    -webkit-animation-duration: 2.5s;
+    animation-duration: 2.5s;
+    -webkit-animation-fill-mode: both;
+    animation-fill-mode: both;
+    margin-bottom: 20px;
+}
+.lm-message.success p {
+    margin: 0;
+    color: #FFF;
+}
+
+.user-groups-area .ui-accordion-content a {
+    white-space: nowrap;
+    font-size: 90%;
+    /* font-family: none; */
+    color: #1f66c4;
+}
+
+.lm-group-details.tabs.ui-tabs.ui-widget-content ul.ui-tabs-nav li.ui-state-active a {
+    color: #000;
+}
+.lm-group-details.tabs.ui-tabs.ui-widget-content ul.ui-tabs-nav li.ui-state-active {
+        -moz-box-shadow: inset 0 0 1000px rgba(0,0,0,.05);
+    -webkit-box-shadow: inset 0 0 1000px rgba(0,0,0,.05);
+    box-shadow: inset 0 0 1000px rgba(0,0,0,.05);
+    border-bottom: 1px solid rgba(0,0,0,.05);
 }

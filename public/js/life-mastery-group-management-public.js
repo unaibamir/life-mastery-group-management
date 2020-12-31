@@ -23,7 +23,11 @@
 
 	$('.lm-user-select').select2();
 
-	$(".lm-group-details").tabs();
+	$(".lm-group-details").tabs({                
+        beforeLoad: function(event, ui) {
+            ui.panel.html('Loading... ')
+        }
+    });
 
 	/*$lesson_select.on("select2:select", function (e) {
 

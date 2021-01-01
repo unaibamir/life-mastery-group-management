@@ -104,7 +104,7 @@ class Life_Mastery_Group_Management_Admin {
 	public function add_meta_boxes() {
 		add_meta_box(
             'lm-group-tag-bos',
-            __( 'InfusionSoft Memebr Tag', 'textdomain' ),
+            __( 'InfusionSoft Member Tag', 'textdomain' ),
             array( $this, 'render_metabox' ),
             'groups',
             'advanced',
@@ -125,7 +125,7 @@ class Life_Mastery_Group_Management_Admin {
 			<tr>
 				<th><label for="lm_group_tag"><?php echo __('Select Group Tag'); ?></label></th></th>
 				<td>
-					<select name="lm_group_tag" id="lm_group_tag" class="lm_group_tag lm-select2">
+					<select name="lm_group_tag" id="lm_group_tag" class="lm_group_tag lm-select2 mbr-select2">
 						<?php foreach ($tags as $tag) {
 							echo '<option value="'. $tag->TagId .'" '. selected( $group_tag, $tag->TagId ) .' >'. $tag->GroupName .'</option>';
 						} ?>
@@ -134,10 +134,11 @@ class Life_Mastery_Group_Management_Admin {
 			</tr>
 
 			<tr>
-				<th><label for="lm_group_tag"><?php echo __('Drop Course Lessons'); ?></label></th></th>
+				<th><label for="lm_group_tag"><?php echo __('Drip Course Lessons'); ?></label></th></th>
 				<td>
 					<input type="checkbox" name="lm_drip_lessons" value="yes">
-					<p class="description">Automatically generate group course dates and drip the course lessons based on the generated dates.</p>
+					<p class="description">"Automatically generate group course dates (based on date in the Infusionsoft tag) and drip dates for the course lessons (based on the generated dates).</p>
+					<p class="description">NOTE: Checking the box will reset any date changes made by the Group Leader!</p>
 				</td>
 			</tr>
 		</table>

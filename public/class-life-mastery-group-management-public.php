@@ -155,6 +155,13 @@ class Life_Mastery_Group_Management_Public {
 		} else {
 
 			$user_group_ids     = learndash_get_administrators_group_ids( $user->ID );
+			$hidden_groups      = get_user_meta( $user->ID, 'lifemastery_hidden_groups', true);
+	        if( !empty( $hidden_groups ) ) {
+	            $common_group_ids = array_diff( $user_group_ids, $hidden_groups );
+	        }
+
+	        $user_group_ids = array_unique($user_group_ids);
+			arsort( $user_group_ids );
 
 			if( !empty( $user_group_ids ) ) {
 
@@ -216,6 +223,7 @@ class Life_Mastery_Group_Management_Public {
         }
 
         $common_group_ids = array_unique($common_group_ids);
+        arsort( $user_group_ids );
 
         if( !empty( $common_group_ids ) ) {
 

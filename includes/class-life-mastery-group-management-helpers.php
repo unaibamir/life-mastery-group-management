@@ -275,7 +275,7 @@ class LM_Helper {
 					<?php foreach ($students as $user) {
 						?>
 						<tr>
-							<td>
+							<td id="user-<?php echo $user->ID; ?>">
 								<span style="min-width: 140px;display: block;"><?php echo $user->display_name; ?></span>
 							</td>
 							<?php 
@@ -288,10 +288,29 @@ class LM_Helper {
 
 									$has_row = $wpdb->get_row( $query );
 
+									/*if( $current_date <= $date ) {
+										$status = '';
+									} else {
+										$status = $has_row !== null && $has_row->attendance_type == '1' ? __('X') : __('-');
+									}*/
+
 									if( $current_date <= $date ) {
 										$status = '';
 									} else {
-										$status = $has_row !== null && $has_row->attendance_type == 'present' ? strtoupper($has_row->attendance_type) : __('X');
+										if( $has_row !== null ) {
+											if( $has_row->attendance_type == '2' ) {
+												$status = 'X';
+											} else if( $has_row->attendance_type == '1' ) {
+												$status = '-';
+											} else if( $has_row->attendance_type == '3' ) {
+												$status = '/';
+											} else {
+												$status = '';
+											}
+										}
+										else {
+											$status = '';
+										}
 									}
 
 									?>

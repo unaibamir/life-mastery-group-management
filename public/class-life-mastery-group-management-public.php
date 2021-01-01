@@ -811,8 +811,9 @@ class Life_Mastery_Group_Management_Public {
 					<th>Status</th>
 					<td>
 						<div class="input-options radio-button-options">
-							<label class="option-label"><input type="radio" name="attendance" value="present" required="required"><strong>Present</strong></label>
-							<label class="option-label"><input type="radio" name="attendance" value="absent" required="required"><strong>Absent</strong></label>
+							<label class="option-label"><input type="radio" name="attendance" value="1" required="required"><strong>Missed</strong></label>
+							<label class="option-label"><input type="radio" name="attendance" value="2" required="required"><strong>Present</strong></label>
+							<label class="option-label"><input type="radio" name="attendance" value="3" required="required"><strong>Missed but completed the work</strong></label>
 						</div>
 
 					</td>

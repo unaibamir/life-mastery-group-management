@@ -75,6 +75,7 @@ define( 'WPNP_ACF_URL', WPNP_LM_URL . 'includes/plugins/acf-pro/' );
 
 // Include the ACF plugin.
 include_once( WPNP_ACF_PATH . 'acf.php' );
+include_once( WPNP_LM_DIR . 'includes/plugins/acf-fields.php' );
 
 // Customize the url setting to fix incorrect asset URLs.
 add_filter('acf/settings/url', 'wpnp_lm_acf_settings_url');
@@ -83,7 +84,7 @@ function wpnp_lm_acf_settings_url( $url ) {
 }
 
 // (Optional) Hide the ACF admin menu item.
-//add_filter('acf/settings/show_admin', 'wpnp_lm_acf_settings_show_admin');
+add_filter('acf/settings/show_admin', 'wpnp_lm_acf_settings_show_admin', 99999);
 function wpnp_lm_acf_settings_show_admin( $show_admin ) {
     return false;
 }

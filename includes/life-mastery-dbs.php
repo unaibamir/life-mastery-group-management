@@ -12,7 +12,7 @@ if ( $wpdb->get_var( "SHOW TABLES LIKE '$table_name'" ) != $table_name ) {
 	`id` int(11) NOT NULL AUTO_INCREMENT,
 	`group_id` int(11) NOT NULL,
 	`user_id` int(11) NOT NULL,
-	`attendance_type` ENUM('absent','present') NOT NULL DEFAULT 'absent',
+	`attendance_type` int(1) NOT NULL DEFAULT 1,
 	`log_by_user_id` int(11) DEFAULT NULL COMMENT 'The user_id who generate this log',
 	`date` varchar(255) NOT NULL,
 	`ip_address` varchar(16) DEFAULT NULL,

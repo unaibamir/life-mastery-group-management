@@ -29,6 +29,31 @@
         }
     });
 
+    $(".lm-group_member-details").tabs({                
+        beforeLoad: function(event, ui) {
+            ui.panel.html('Loading... ')
+        },
+        active: 5
+    });
+
+    $(document).on('change', ".student_view_form", function( event ){
+    	var $student_id = $(this).val();
+    	var $group_id = $(this).attr('data-group_id');
+
+    	var data = {
+			'action': 'lm_load_student_form_details',
+			'student_id': $student_id,
+			'group_id': $group_id
+		};
+
+		var $target = $(this).parents('table').find('.load-student-form-wrapper').find('.load-student-form-details');
+		$target.html('Loading ...');
+
+		jQuery.post(ajaxurl, data, function(response) {
+			$target.html( response );
+		});
+    });
+
 	/*$lesson_select.on("select2:select", function (e) {
 
 		var vals = $(this).select2("val");

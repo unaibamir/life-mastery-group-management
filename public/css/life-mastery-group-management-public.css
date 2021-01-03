@@ -52,9 +52,11 @@
     padding: 0;
     margin: 0;
 }
-.lm-group-details.tabs.ui-tabs.ui-widget-content ul.ui-tabs-nav li {
+.lm-group-details.tabs.ui-tabs.ui-widget-content ul.ui-tabs-nav li,
+.lm-group_member-details.tabs.ui-tabs.ui-widget-content ul.ui-tabs-nav li {
     border-bottom: 1px solid #aaaaaa;
 }
+.lm-group-details.tabs.ui-tabs.ui-widget-content .ui-tabs-panel.ui-widget-content,
 .lm-group-details.tabs.ui-tabs.ui-widget-content .ui-tabs-panel.ui-widget-content {
     padding: 0em 15px 1em 15px;
 }
@@ -103,10 +105,12 @@ h5.widgettitle.group-title.ui-accordion-header .ui-accordion-header-icon {
     color: #1f66c4;
 }
 
-.lm-group-details.tabs.ui-tabs.ui-widget-content ul.ui-tabs-nav li.ui-state-active a {
+.lm-group-details.tabs.ui-tabs.ui-widget-content ul.ui-tabs-nav li.ui-state-active a,
+.lm-group_member-details.tabs.ui-tabs.ui-widget-content ul.ui-tabs-nav li.ui-state-active a {
     color: #000;
 }
-.lm-group-details.tabs.ui-tabs.ui-widget-content ul.ui-tabs-nav li.ui-state-active {
+.lm-group-details.tabs.ui-tabs.ui-widget-content ul.ui-tabs-nav li.ui-state-active,
+.lm-group_member-details.tabs.ui-tabs.ui-widget-content ul.ui-tabs-nav li.ui-state-active {
         -moz-box-shadow: inset 0 0 1000px rgba(0,0,0,.05);
     -webkit-box-shadow: inset 0 0 1000px rgba(0,0,0,.05);
     box-shadow: inset 0 0 1000px rgba(0,0,0,.05);
@@ -114,4 +118,26 @@ h5.widgettitle.group-title.ui-accordion-header .ui-accordion-header-icon {
 }
 #buddypress table.profile-fields.group-attendance tr td:not(:first-child), #buddypress table.profile-fields.group-attendance tr th:not(:first-child) {
     text-align: center;
+}
+
+.lm-group-details.tabs.ui-tabs.ui-widget-content .ui-tabs-panel.ui-widget-content li,
+.lm-group_member-details.tabs.ui-tabs.ui-widget-content .ui-tabs-panel.ui-widget-content li {
+    color: #515151;
+    font-size: 16px;
+}
+/*.lm-group_member-details.tabs.ui-tabs.ui-widget-content .ui-tabs-panel.ui-widget-content * {
+    font-size: 16px;
+    color: #515151;
+}*/
+
+#buddypress.user-groups-area h5.widgettitle.group-title + .ui-accordion-content table.entry-detail-view tr th {
+    width: 500px;
+    padding: 15px;
+    vertical-align: top;
+    border: 1px solid #aaaaaa;
+}
+#buddypress.user-groups-area h5.widgettitle.group-title + .ui-accordion-content table.entry-detail-view tr td {
+    padding: 15px;
+    vertical-align: top;
+    border: 1px solid #aaaaaa;
 }

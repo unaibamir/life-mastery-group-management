@@ -70,8 +70,27 @@ define( 'WPNP_LM_BASE_DIR', plugin_basename( __FILE__ ) );
 define( 'WPNP_LM_URL', trailingslashit( plugins_url( '', __FILE__ ) ) );
 define( 'WPNP_LM_ASSETS_URL', trailingslashit( WPNP_LM_URL . 'assets' ) );
 
+define( 'WPNP_ACF_PATH', WPNP_LM_DIR . 'includes/plugins/acf-pro/' );
+define( 'WPNP_ACF_URL', WPNP_LM_URL . 'includes/plugins/acf-pro/' );
+
+// Include the ACF plugin.
+include_once( WPNP_ACF_PATH . 'acf.php' );
+
+// Customize the url setting to fix incorrect asset URLs.
+add_filter('acf/settings/url', 'wpnp_lm_acf_settings_url');
+function wpnp_lm_acf_settings_url( $url ) {
+    return WPNP_ACF_URL;
+}
+
+// (Optional) Hide the ACF admin menu item.
+//add_filter('acf/settings/show_admin', 'wpnp_lm_acf_settings_show_admin');
+function wpnp_lm_acf_settings_show_admin( $show_admin ) {
+    return false;
+}
+
 /**
- * The code that runs during plugin activation.
+ * 
+ The code that runs during plugin activation.
  * This action is documented in includes/class-life-mastery-group-management-activator.php
  */
 function activate_life_mastery_group_management() {

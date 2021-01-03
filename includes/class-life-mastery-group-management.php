@@ -164,6 +164,10 @@ class Life_Mastery_Group_Management {
 		$this->loader->add_action( 'add_meta_boxes', $plugin_admin, 'add_meta_boxes' );
 		$this->loader->add_action( 'save_post', $plugin_admin, 'ld_group_save_post', 10, 3 );
 
+		$this->loader->add_action( 'acf/init', $plugin_admin, 'initialize_acf_options_page', 10, 3 );
+
+		$this->loader->add_action( 'acf/prepare_field/name=student_form', $plugin_admin, 'populate_student_form_options', 10, 3 );
+
 	}
 
 	/**
@@ -193,6 +197,8 @@ class Life_Mastery_Group_Management {
 		$this->loader->add_action( 'wp_ajax_lm_load_group_data', $plugin_public, 'lm_group_details_ajax_callback' );
 
 		$this->loader->add_action( 'wp_loaded', $plugin_public, 'lm_infusionsoft_listner_callback' );
+
+		$this->loader->add_action( 'wp_ajax_lm_load_student_form_details', $plugin_public, 'load_student_form_details' );
 
 	}
 

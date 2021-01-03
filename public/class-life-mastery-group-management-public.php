@@ -79,7 +79,7 @@ class Life_Mastery_Group_Management_Public {
 		 * class.
 		 */
 
-		wp_enqueue_style( 'lm-jquery-ui-style' , 'https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/themes/smoothness/jquery-ui.css');
+		wp_enqueue_style( 'lm-jquery-ui-style' , plugin_dir_url( __FILE__ ) . 'css/jquery-ui.css');
 		wp_enqueue_style( 'lm-select2-css' , plugin_dir_url( __FILE__ ) . 'css/select2.min.css', array(), $this->version, 'all');
 		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/life-mastery-group-management-public.css', array('lm-select2-css'), time(), 'all' );
 
@@ -109,6 +109,12 @@ class Life_Mastery_Group_Management_Public {
 		 * between the defined hooks and the functions defined in this
 		 * class.
 		 */
+
+		$form_id = get_field('student_form', 'option');
+		if( !empty( $form_id ) ) {
+			gravity_form_enqueue_scripts( $form_id, true );
+		}
+		
 
 		$dependecy = array( 'jquery', 'jquery-ui-datepicker', 'lm-select2' );
 		wp_enqueue_script( 'jquery-ui-datepicker' );
@@ -233,13 +239,14 @@ class Life_Mastery_Group_Management_Public {
 		    <?php
 
 		    foreach ($common_group_ids as $group_id) {
+
 		    	$is_leader = false;
 		    	$has_group_leader = learndash_get_groups_administrators( $group_id, true );
 				if ( ! empty( $has_group_leader ) ) {
 					foreach ( $has_group_leader as $leader ) {
 						if ( learndash_is_group_leader_of_user( $leader->ID, $user->ID ) ) {
 							$is_leader = true;
-							continue;
+							break;
 						}
 					}
 				}
@@ -315,6 +322,9 @@ class Life_Mastery_Group_Management_Public {
 
 		?>
 		<div id="buddypress" class="lm-group-manage-area">
+			<h5 class="widgettitle  lm-group-title">
+		    		<?php echo get_the_title($group_id); ?>
+		    	</h5>
 			<div id="item-nav" class="lm-group-manage-nav">
 				<div class="item-list-tabs no-ajax">
 					<ul class="horizontal-responsive-menu" id="nav-bar-filter" style="padding-left: 0">
@@ -470,20 +480,22 @@ class Life_Mastery_Group_Management_Public {
 									</select>
 								</td>
 								<td>
-									<select name="users[<?php echo $counter; ?>][]" class="student_select" multiple="multiple" >
-										<optgroup label="Students">
-											<?php
-											foreach ($members['students'] as $member) {
-												$selected = '';
-												if( isset($group_data['users'][$counter]) && in_array($member['ID'], $group_data['users'][$counter]) ) {
-													$selected = 'selected="selected"';
+									<select name="users[<?php echo $counter; ?>][]" class="student_select" multiple="multiple" required="required">
+										<?php if( $counter > 1 ): ?>
+											<optgroup label="Students">
+												<?php
+												foreach ($members['students'] as $member) {
+													$selected = '';
+													if( isset($group_data['users'][$counter]) && in_array($member['ID'], $group_data['users'][$counter]) ) {
+														$selected = 'selected="selected"';
+													}
+													?>
+													<option value="<?php echo $member['ID']; ?>" <?php echo $selected; ?>><?php echo $member['name']; ?></option>
+													<?php
 												}
 												?>
-												<option value="<?php echo $member['ID']; ?>" <?php echo $selected; ?>><?php echo $member['name']; ?></option>
-												<?php
-											}
-											?>
-										</optgroup>
+											</optgroup>
+										<?php endif; ?>
 
 										<optgroup label="Leaders">
 											<?php
@@ -511,19 +523,7 @@ class Life_Mastery_Group_Management_Public {
 									<td>
 										<input type="hidden" name="section[]" value="<?php echo array_key_first($sections); ?>">
 										<select name="s_users[<?php echo array_key_first($sections); ?>][]" class="student_select" multiple="multiple" >
-											<optgroup label="Students">
-												<?php
-												foreach ($members['students'] as $member) {
-													$selected = '';
-													if( isset($group_data['s_users'][array_key_first($sections)]) && in_array($member['ID'], $group_data['s_users'][array_key_first($sections)]) ) {
-														$selected = 'selected="selected"';
-													}
-													?>
-													<option value="<?php echo $member['ID']; ?>" <?php echo $selected; ?>><?php echo $member['name']; ?></option>
-													<?php
-												}
-												?>
-											</optgroup>
+											
 
 											<optgroup label="Leaders">
 												<?php
@@ -551,19 +551,7 @@ class Life_Mastery_Group_Management_Public {
 									<td>
 										<input type="hidden" name="section[]" value="<?php echo array_key_last($sections); ?>">
 										<select name="s_users[<?php echo array_key_last($sections); ?>][]" class="student_select" multiple="multiple" >
-											<optgroup label="Students">
-												<?php
-												foreach ($members['students'] as $member) {
-													$selected = '';
-													if( isset($group_data['s_users'][array_key_last($sections)]) && in_array($member['ID'], $group_data['s_users'][array_key_last($sections)]) ) {
-														$selected = 'selected="selected"';
-													}
-													?>
-													<option value="<?php echo $member['ID']; ?>" <?php echo $selected; ?>><?php echo $member['name']; ?></option>
-													<?php
-												}
-												?>
-											</optgroup>
+											
 
 											<optgroup label="Leaders">
 												<?php
@@ -604,11 +592,13 @@ class Life_Mastery_Group_Management_Public {
 
 
 	public function lm_group_schedule_save_callback() {
-		
+		global $wpdb;
 
 		if ( ! isset( $_POST['lm_group_schedule_save_wpnonce'] )  || ! wp_verify_nonce( $_POST['lm_group_schedule_save_wpnonce'], 'lm_group_schedule_save' ) ) {
 			wp_die( __('Oops, something went wrong with your submission. Please try again.'), __('something went wrong!') );
 		}
+
+		$table = _get_meta_table( 'user' );
 
 		$lesson_drip_dates = $group_attendance_dates = $lesson_review_dates = array();
 
@@ -622,18 +612,57 @@ class Life_Mastery_Group_Management_Public {
 
 		$lessons = array();
 
-		if( isset($_POST['lm_lessons']) && !empty($_POST['lm_lessons']) ) {
-			foreach ($_POST['lm_lessons'] as $lesson) {
-				
-			}
+		$gmt_offset  	= get_option( 'gmt_offset' );
+		if ( empty( $gmt_offset ) ) {
+			$gmt_offset = 0;
 		}
+		$offset      	= ( $gmt_offset * ( 60 * 60 ) ) * - 1;
+
+        $data 			=	array();
+        $format 		= 'Y-m-d H:01:s';
 
 		$group_data = array();
+		$group_data['group_id'] 		= $_POST['lm_group_id'];
 		$group_data['lesson_dates'] 	= $_POST['lesson_date'];
 		$group_data['lesson_review_dates'] = $_POST['lesson_review_date'];
 		$group_data['lm_lessons'] 		= $_POST['lm_lessons'];
 		$group_data['users'] 			= isset($_POST['users']) ? $_POST['users'] : array();
 		$group_data['s_users'] 			= isset($_POST['s_users']) ? $_POST['s_users'] : array();
+		$group_data['users_data'] 		= array();
+
+
+		/*foreach ($group_data['lesson_dates'] as $key => $lesson_date) {
+			$meta_key = 'lm-lesson-date-' . $_POST['lm_group_id'] . '-'  ;
+			dd( $meta_key, false );
+		}*/
+
+		foreach ($group_data['users'] as $key => $users) {
+			$date 	 	= date( $format, strtotime( $group_data['lesson_dates'][$key] ) );
+        	$drip_date 	= strtotime($date);
+        	$drip_date 	= (int) $drip_date + $offset;
+        	$week_num 	= $key - 1;
+        	
+        	if( $week_num < 1 ) {
+        		//continue;
+        	}
+
+			foreach ($users as $user_num => $user_id) {
+
+				// delete all previous ones
+				$query = "DELETE FROM $table WHERE user_id = {$user_id} AND meta_key LIKE 'lm_lesson_group_".$group_data['group_id']."%'";
+				$count = $wpdb->query( $query );
+
+				$user_lesson_date = 'lm_lesson_group_' . $group_data['group_id'].'_date';
+				$user_lesson_week = 'lm_lesson_group_' . $group_data['group_id'].'_week';
+				
+				update_user_meta( $user_id, $user_lesson_date, $drip_date, '' );
+				update_user_meta( $user_id, $user_lesson_week, $week_num, '' );
+			}
+		}
+
+		/*dd( $group_data );
+
+		dd('finish user settings first');*/
 
 		LM_Helper::drip_public_group_lessons( $_POST['lm_group_id'], $group_data );
 
@@ -787,7 +816,7 @@ class Life_Mastery_Group_Management_Public {
 						<select name="users[]" class="lm-user-select" multiple="multiple" style="width: 550px;" required="required">
 							<?php
 							foreach ($students as $user) {
-								echo '<option value="'.$user->ID.'">' . $user->display_name . ' (' . $user->user_email . ')</option>';
+								echo '<option value="'.$user->ID.'">' . $user->display_name . '</option>';
 							}
 							?>
 						</select>
@@ -930,6 +959,14 @@ class Life_Mastery_Group_Management_Public {
 			case 'zoom':
 				echo LM_Helper::get_group_zoom_info( $group_id );
 				break;
+
+			case 'instructions':
+				echo LM_Helper::get_group_lead_instructions( $group_id );
+				break;
+
+			case 'form':
+				echo LM_Helper::get_group_form( $group_id );
+				break;
 		}
 
 		wp_die();
@@ -1020,5 +1057,149 @@ class Life_Mastery_Group_Management_Public {
 		<div class="lm-message success"><?php echo wpautop( $message ); ?></div>
 		<?php
 
+	}
+
+
+	public function load_student_form_details() {
+		
+		$group_id 	= $_POST['group_id'];
+		$user_id 	= $_POST['student_id'];
+
+		$form_id 	= get_field('student_form', 'option');
+		$form 		= GFFormsModel::get_form_meta( absint( $form_id ) );
+		$form    	= apply_filters( 'gform_admin_pre_render', $form );
+		$form    	= apply_filters( 'gform_admin_pre_render_' . $form_id, $form );
+
+		$search_criteria = array(
+			'status'        => 'active',
+			'field_filters' => array(
+				array(
+					'key'   => 'created_by',
+					'value' => $user_id
+				),
+				array(
+					'key'   => '20',
+					'value' => $group_id,
+					'operator'	=>	'is'
+				)
+			)
+		);
+
+		$entries    = GFAPI::get_entries( $form_id, $search_criteria );
+		
+		ob_start();
+
+		if( empty( $entries ) ) {
+			$output = 'The student has not submitted the information yet.';
+			echo wpautop( $output );
+			wp_die();
+		}
+		
+		$lead 	 	= $entry = $entries[0];
+		?>
+		
+		<table class="widefat fixed entry-detail-view">
+			<tbody>
+				<?php
+				$count = 0;
+				$field_count = sizeof( $form['fields'] );
+				$has_product_fields = false;
+
+				foreach ( $form['fields'] as $field ) {
+
+					if( $field->id == 20 )
+						continue;
+
+					$content = $value = '';
+
+					switch ( $field->get_input_type() ) {
+						case 'section' :
+							if ( ! GFCommon::is_section_empty( $field, $form, $lead ) || $display_empty_fields ) {
+								$count ++;
+								$is_last = $count >= $field_count ? ' lastrow' : '';
+
+								$content = '
+	                                <tr>
+	                                    <td colspan="2" class="entry-view-section-break' . $is_last . '">' . esc_html( GFCommon::get_label( $field ) ) . '</td>
+	                                </tr>';
+							}
+							break;
+
+						case 'captcha':
+						case 'html':
+						case 'password':
+						case 'page':
+							// Ignore captcha, html, password, page field.
+							break;
+
+						default :
+							// Ignore product fields as they will be grouped together at the end of the grid.
+							if ( GFCommon::is_product_field( $field->type ) ) {
+								$has_product_fields = true;
+								break;
+							}
+
+							$value = RGFormsModel::get_lead_field_value( $lead, $field );
+
+							if ( is_array( $field->fields ) ) {
+								// Ensure the top level repeater has the right nesting level so the label is not duplicated.
+								$field->nestingLevel = 0;
+							}
+
+							$display_value = GFCommon::get_lead_field_display( $field, $value, $lead['currency'] );
+
+							/**
+							 * Filters a field value displayed within an entry.
+							 *
+							 * @since 1.5
+							 *
+							 * @param string   $display_value The value to be displayed.
+							 * @param GF_Field $field         The Field Object.
+							 * @param array    $lead          The Entry Object.
+							 * @param array    $form          The Form Object.
+							 */
+							$display_value = apply_filters( 'gform_entry_field_value', $display_value, $field, $lead, $form );
+
+							if ( $display_empty_fields || ! empty( $display_value ) || $display_value === '0' ) {
+								$count ++;
+								$is_last  = $count >= $field_count && ! $has_product_fields ? true : false;
+								$last_row = $is_last ? ' lastrow' : '';
+
+								$display_value = empty( $display_value ) && $display_value !== '0' ? '&nbsp;' : $display_value;
+
+								$content = '
+	                                <tr>
+	                                    <th class="entry-view-field-name"><strong>' . esc_html( GFCommon::get_label( $field ) ) . '</strong></th>
+	                                    <td class="entry-view-field-value' . $last_row . '">' . $display_value . '</td>
+	                                </tr>
+	                                <tr>';
+							}
+							break;
+					}
+
+					/**
+					 * Filters the field content.
+					 *
+					 * @since 2.1.2.14 Added form and field ID modifiers.
+					 *
+					 * @param string $content    The field content.
+					 * @param array  $field      The Field Object.
+					 * @param string $value      The field value.
+					 * @param int    $lead['id'] The entry ID.
+					 * @param int    $form['id'] The form ID.
+					 */
+					$content = gf_apply_filters( array( 'gform_field_content', $form['id'], $field->id ), $content, $field, $value, $lead['id'], $form['id'] );
+
+					echo $content;
+				}
+				?>
+			</tbody>
+		</table>
+		<?php
+		$output = ob_get_contents();
+        ob_end_clean();
+        echo $output;
+
+        wp_die();
 	}
 }

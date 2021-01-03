@@ -363,36 +363,54 @@ class LM_Helper {
 			'data'		=>	'zoom',
 		), admin_url( 'admin-ajax.php' ));
 
+		$tab_ajax_instructions_url = add_query_arg(array(
+			'action'	=>	'lm_load_group_data',
+			'group_id'	=>	$group_id,
+			'data'		=>	'instructions',
+		), admin_url( 'admin-ajax.php' ));
+
+		$tab_ajax_form_url = add_query_arg(array(
+			'action'	=>	'lm_load_group_data',
+			'group_id'	=>	$group_id,
+			'data'		=>	'form',
+		), admin_url( 'admin-ajax.php' ));
+
+
+		$show_user_tab		= false;
+		$user_id 			= get_current_user_id();
+		$user_lesson_date 	= get_user_meta( $user_id, "lm_lesson_group_{$group_id}_date", true );
+
+		// ensure we have something to go forward with
+		if( !empty( $user_lesson_date ) ) {
+			$current_date 		= new DateTime();
+			$lesson_date 		= new DateTime( date('Y-m-d', $user_lesson_date) );
+			$date_interval 		= $current_date->diff( $lesson_date );
+
+			if( ($date_interval->format('%R%a') > -1) && ($date_interval->format('%R%a') < 7) ) {
+				$show_user_tab 	= true;
+			}
+		}
+
 		?>
-		<div class="lm-group-details tabs ui-tabs ui-widget ui-widget-content ui-corner-all">
+		<div id="lm-group-tab-<?php echo $group_id; ?>" data-instructions="<?php echo $show_user_tab === true ? 'displayed' : 'hidden'; ?>"  class="lm-group_member-details tabs ui-tabs ui-widget ui-widget-content ui-corner-all" >
 			<ul class="ui-tabs-nav ui-helper-reset ui-helper-clearfix ui-widget-header ui-corner-all">
 				<li class="ui-state-default ui-corner-top"><a class="ui-tabs-anchor" href="<?php echo $tab_ajax_roster_url; ?>">Roster</a></li>
 				<li class="ui-state-default ui-corner-top"><a class="ui-tabs-anchor" href="<?php echo $tab_ajax_attendance_url; ?>">Attendance</a></li>
 				<li class="ui-state-default ui-corner-top"><a class="ui-tabs-anchor" href="<?php echo $tab_ajax_schedule_url; ?>">Class Schedule</a></li>
 				<li class="ui-state-default ui-corner-top"><a class="ui-tabs-anchor" href="<?php echo $tab_ajax_zoom_url; ?>">Zoom</a></li>
+				<li class="ui-state-default ui-corner-top"><a class="ui-tabs-anchor" href="<?php echo $tab_ajax_form_url; ?>">Form</a></li>
+				<?php
+				if( $show_user_tab ) {
+					?>
+					<li class="ui-state-default ui-corner-top"><a class="ui-tabs-anchor" href="<?php echo $tab_ajax_instructions_url; ?>">Lead Instructions</a></li>
+					<?php
+				}
+				?>
 			</ul>
 
-			
-			<?php /* ?>
-			<div id="group-<?php echo $group_id; ?>-roster">
-				<?php echo LM_Helper::get_group_roster( $group_id ); ?>
-			</div>
-
-			<div id="group-<?php echo $group_id; ?>-attendance">
-				<?php echo LM_Helper::get_group_attendance_view( $group_id ); ?>
-			</div>
-
-			<div id="group-<?php echo $group_id; ?>-schedule">
-				<?php echo LM_Helper::get_group_schedule_view( $group_id ); ?>
-			</div>
-
-			<div id="group-<?php echo $group_id; ?>-zoom">
-				<?php echo LM_Helper::get_group_zoom_info( $group_id ); ?>
-			</div>
-			<?php */ ?>
 		</div>
-		<?php
 
+		<?php
 		$output = ob_get_contents();
         ob_end_clean();
         return $output;
@@ -438,6 +456,7 @@ class LM_Helper {
 	{
 		global $wpdb;
 		$table 				= 	'_isContact';
+		$curr_user 			= 	wp_get_current_user();
 		$students 			= 	learndash_get_groups_users( $group_id );
 		$leaders 			= 	learndash_get_groups_administrators( $group_id );
 
@@ -448,11 +467,13 @@ class LM_Helper {
 			<table class="profile-fields group-attendance">
 				<thead>
 					<tr>
-						<td>First Name</td>
-						<td>Last Name</td>
+						<!-- <td>First Name</td>
+						<td>Last Name</td> -->
 						<td>Name</td>
 						<td>Email</td>
-						<td>Phone 1</td>
+						<?php if( learndash_is_group_leader_user( $curr_user ) ): ?>
+							<td>Phone 1</td>
+						<?php endif; ?>
 						<td>State</td>
 					</tr>
 				</thead>
@@ -468,11 +489,13 @@ class LM_Helper {
 							}
 							?>
 							<tr>
-								<td><?php echo $user->first_name; ?></td>
-								<td><?php echo $user->last_name; ?></td>
+								<!-- <td><?php echo $user->first_name; ?></td>
+								<td><?php echo $user->last_name; ?></td> -->
 								<td><?php echo $user->display_name; ?></td>
 								<td><?php echo $user->user_email; ?></td>
-								<td><?php echo !empty($contact_id) && isset($phone[0]) ? $phone[0] : ""; ?></td>
+								<?php if( learndash_is_group_leader_user( $curr_user ) ): ?>
+									<td><?php echo !empty($contact_id) && isset($phone[0]) ? $phone[0] : ""; ?></td>
+								<?php endif; ?>
 								<td><?php echo !empty($contact_id) && isset($state[0]) ? $state[0] : ""; ?></td>
 							</tr>
 							<?php
@@ -499,6 +522,18 @@ class LM_Helper {
 		}
 		
 		return $zoom_info;
+	}
+
+	public static function get_group_lead_instructions( $group_id )
+	{
+		$user_id = get_current_user_id();
+		$user_lesson_week_num 	= get_user_meta( $user_id, "lm_lesson_group_{$group_id}_week", true );	
+		$week_content 			= get_field( "questions_week_" . $user_lesson_week_num, "option" );
+		if( empty($user_lesson_week_num) || empty($week_content) ) {
+			$week_content 			= get_field( "default_questions", "option" );
+		}
+		$week_content 			= wpautop( $week_content );
+		return $week_content;
 	}
 
 
@@ -691,6 +726,211 @@ class LM_Helper {
 
 		<?php
 
+	}
+
+
+	public static function get_group_form( $group_id )
+	{
+		$user = wp_get_current_user();
+
+		if( learndash_is_group_leader_user( $user ) ) {
+			echo self::lm_group_leader_form_management( $group_id, $user );
+		} else {
+			echo self::lm_group_member_form_management( $group_id, $user );
+		}
+		
+	}
+
+	public static function lm_group_leader_form_management( $group_id, $user )
+	{
+		$form_id 			= get_field('student_form', 'option');
+		$students 			= 	learndash_get_groups_users( $group_id );
+
+		ob_start();
+		?>
+		<form action="<?php echo admin_url( 'admin-ajax.php' ) ?>" id="signup_form" class="standard-form base" method="POST" autocomplete="off">
+			<table class="profile-fields attendance-form student-form-details">
+				<tbody>
+					<tr>
+						<th><label for="student_view_form"><strong>Select Student</strong></label></th>
+						<td>
+							<select name="student_view_form" id="student_view_form" class="student_view_form lm-user-select" data-group_id="<?php echo $group_id; ?>">
+								<option value="">Please Select</option>
+								<?php
+								foreach ($students as $user) {
+									echo '<option value="'.$user->ID.'">'.$user->display_name.'</option>';
+								}
+								?>
+							</select>
+							<p class="description">Please select student to view form submissions</p>
+						</td>
+					</tr>
+					<tr class="load-student-form-wrapper">
+						<td colspan="2">
+							<div class="load-student-form-details"></div>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</form>
+						
+		<?php
+		$output = ob_get_contents();
+        ob_end_clean();
+        return $output;
+		
+	}
+
+	public static function lm_group_member_form_management( $group_id, $user )
+	{
+		$search_criteria = array(
+			'status'        => 'active',
+			'field_filters' => array(
+				array(
+					'key'   => 'created_by',
+					'value' => $user->ID
+				),
+				array(
+					'key'   => '20',
+					'value' => $group_id,
+					'operator'	=>	'is'
+				)
+			)
+		);
+
+		$entries         = GFAPI::get_entries( $form_id, $search_criteria );
+
+		// if user has already submitted the form for the particular group
+		if( !empty( $entries ) ) {
+
+			$output = self::get_form_entry_details( $entries[0], $group_id, $user );
+			return $output;
+
+		} else {
+			
+			$form_id = get_field('student_form', 'option');
+			$form_shortcode = '[gravityform id="'.$form_id.'" title="false" description="false" ajax="true" field_values="group_id='.$group_id.'"]';
+			
+			return apply_filters( 'the_content', do_shortcode( $form_shortcode ) );
+		}
+
+	}
+
+	public static function get_form_entry_details( $entry, $group_id, $user )
+	{
+		$form_id = get_field('student_form', 'option');
+		$form = GFFormsModel::get_form_meta( absint( $form_id ) );
+
+		$form_id = absint( $form['id'] );
+		$lead 	 = $entry;
+
+		$form    = apply_filters( 'gform_admin_pre_render', $form );
+		$form    = apply_filters( 'gform_admin_pre_render_' . $form_id, $form );
+
+		ob_start();
+		?>
+		<p>You have already submitted the form. Please see below your form submission. </p>
+		<table class="widefat fixed entry-detail-view">
+			<tbody>
+				<?php
+				$count = 0;
+				$field_count = sizeof( $form['fields'] );
+				$has_product_fields = false;
+
+				foreach ( $form['fields'] as $field ) {
+
+					if( $field->id == 20 )
+						continue;
+
+					$content = $value = '';
+
+					switch ( $field->get_input_type() ) {
+						case 'section' :
+							if ( ! GFCommon::is_section_empty( $field, $form, $lead ) || $display_empty_fields ) {
+								$count ++;
+								$is_last = $count >= $field_count ? ' lastrow' : '';
+
+								$content = '
+	                                <tr>
+	                                    <td colspan="2" class="entry-view-section-break' . $is_last . '">' . esc_html( GFCommon::get_label( $field ) ) . '</td>
+	                                </tr>';
+							}
+							break;
+
+						case 'captcha':
+						case 'html':
+						case 'password':
+						case 'page':
+							// Ignore captcha, html, password, page field.
+							break;
+
+						default :
+							// Ignore product fields as they will be grouped together at the end of the grid.
+							if ( GFCommon::is_product_field( $field->type ) ) {
+								$has_product_fields = true;
+								break;
+							}
+
+							$value = RGFormsModel::get_lead_field_value( $lead, $field );
+
+							if ( is_array( $field->fields ) ) {
+								// Ensure the top level repeater has the right nesting level so the label is not duplicated.
+								$field->nestingLevel = 0;
+							}
+
+							$display_value = GFCommon::get_lead_field_display( $field, $value, $lead['currency'] );
+
+							/**
+							 * Filters a field value displayed within an entry.
+							 *
+							 * @since 1.5
+							 *
+							 * @param string   $display_value The value to be displayed.
+							 * @param GF_Field $field         The Field Object.
+							 * @param array    $lead          The Entry Object.
+							 * @param array    $form          The Form Object.
+							 */
+							$display_value = apply_filters( 'gform_entry_field_value', $display_value, $field, $lead, $form );
+
+							if ( $display_empty_fields || ! empty( $display_value ) || $display_value === '0' ) {
+								$count ++;
+								$is_last  = $count >= $field_count && ! $has_product_fields ? true : false;
+								$last_row = $is_last ? ' lastrow' : '';
+
+								$display_value = empty( $display_value ) && $display_value !== '0' ? '&nbsp;' : $display_value;
+
+								$content = '
+	                                <tr>
+	                                    <th class="entry-view-field-name">' . esc_html( GFCommon::get_label( $field ) ) . '</th>
+	                                    <td class="entry-view-field-value' . $last_row . '">' . $display_value . '</td>
+	                                </tr>
+	                                <tr>';
+							}
+							break;
+					}
+
+					/**
+					 * Filters the field content.
+					 *
+					 * @since 2.1.2.14 Added form and field ID modifiers.
+					 *
+					 * @param string $content    The field content.
+					 * @param array  $field      The Field Object.
+					 * @param string $value      The field value.
+					 * @param int    $lead['id'] The entry ID.
+					 * @param int    $form['id'] The form ID.
+					 */
+					$content = gf_apply_filters( array( 'gform_field_content', $form['id'], $field->id ), $content, $field, $value, $lead['id'], $form['id'] );
+
+					echo $content;
+				}
+				?>
+			</tbody>
+		</table>
+		<?php
+		$output = ob_get_contents();
+        ob_end_clean();
+        return $output;
 	}
 
 

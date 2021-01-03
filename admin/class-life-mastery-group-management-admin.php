@@ -182,7 +182,9 @@ class Life_Mastery_Group_Management_Admin {
         $lesson_dates 	= LM_Helper::generate_lesson_dates( $group_id, $weeks, $start_date );
         
         $discuss_dates 	= LM_Helper::generate_lesson_discuss_dates( $group_id, $weeks, $start_date );
+
         $course_lesson_weeks = LM_Helper::get_group_course_lesson_weeks( $group_id );
+        
         array_unshift($course_lesson_weeks, array(9999999));
 
         LM_Helper::drip_admin_group_lessons( $group_id );
@@ -215,6 +217,46 @@ class Life_Mastery_Group_Management_Admin {
 
         update_post_meta( $group_id, 'lm_group_attendance_dates', $lesson_dates, '' );
 
+	}
+
+
+	public function initialize_acf_options_page()
+	{
+		// Check function exists.
+		if( function_exists('acf_add_options_page') ) {
+
+			// Register options page.
+			$option_page = acf_add_options_page(array(
+				'page_title'    => __('LM Questions List'),
+				'menu_title'    => __('LM Questions List'),
+				'menu_slug'     => 'lm-instructions-settings',
+				'capability'    => 'manage_options',
+				'redirect'      => false,
+				'parent_slug' => 'options-general.php',
+			));
+		}
+	}
+
+	public function populate_student_form_options( $field )
+	{
+
+		$forms = GFAPI::get_forms();
+		
+		$field['choices'] = array();
+		
+		$field['choices'][] = 'Please Select';
+
+		foreach ($forms as $form) {
+			$field['choices'][ $form['id'] ] = $form['title'];
+		}
+
+	    // flush/clear the saved value
+	    /*$field['value'] = null;
+
+	    // or, set it to whatever the default
+	    $field['value'] = $field['default_value'];*/
+
+	    return $field;
 	}
 
 }

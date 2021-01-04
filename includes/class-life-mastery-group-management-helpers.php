@@ -343,42 +343,57 @@ class LM_Helper {
 			'action'	=>	'lm_load_group_data',
 			'group_id'	=>	$group_id,
 			'data'		=>	'roster',
+			'_wpnonce'	=>	wp_create_nonce( 'lm_ajax_tab_nonce' )
 		), admin_url( 'admin-ajax.php' ));
 
 		$tab_ajax_attendance_url = add_query_arg(array(
 			'action'	=>	'lm_load_group_data',
 			'group_id'	=>	$group_id,
 			'data'		=>	'attendance',
+			'_wpnonce'	=>	wp_create_nonce( 'lm_ajax_tab_nonce' )
 		), admin_url( 'admin-ajax.php' ));
 
 		$tab_ajax_schedule_url = add_query_arg(array(
 			'action'	=>	'lm_load_group_data',
 			'group_id'	=>	$group_id,
 			'data'		=>	'schedule',
+			'_wpnonce'	=>	wp_create_nonce( 'lm_ajax_tab_nonce' )
 		), admin_url( 'admin-ajax.php' ));
 
 		$tab_ajax_zoom_url = add_query_arg(array(
 			'action'	=>	'lm_load_group_data',
 			'group_id'	=>	$group_id,
 			'data'		=>	'zoom',
+			'_wpnonce'	=>	wp_create_nonce( 'lm_ajax_tab_nonce' )
 		), admin_url( 'admin-ajax.php' ));
 
 		$tab_ajax_instructions_url = add_query_arg(array(
 			'action'	=>	'lm_load_group_data',
 			'group_id'	=>	$group_id,
 			'data'		=>	'instructions',
+			'_wpnonce'	=>	wp_create_nonce( 'lm_ajax_tab_nonce' )
 		), admin_url( 'admin-ajax.php' ));
 
 		$tab_ajax_form_url = add_query_arg(array(
 			'action'	=>	'lm_load_group_data',
 			'group_id'	=>	$group_id,
 			'data'		=>	'form',
+			'_wpnonce'	=>	wp_create_nonce( 'lm_ajax_tab_nonce' )
+		), admin_url( 'admin-ajax.php' ));
+
+		$admin_ajax_form_url = add_query_arg(array(
+			'action'	=>	'lm_load_group_data',
+			'group_id'	=>	$group_id,
+			'data'		=>	'admin_form',
+			'_wpnonce'	=>	wp_create_nonce( 'lm_ajax_tab_nonce' )
 		), admin_url( 'admin-ajax.php' ));
 
 
 		$show_user_tab		= false;
 		$user_id 			= get_current_user_id();
 		$user_lesson_date 	= get_user_meta( $user_id, "lm_lesson_group_{$group_id}_date", true );
+		$user_lesson_week 	= get_user_meta( $user_id, "lm_lesson_group_{$group_id}_week", true );
+
 
 		// ensure we have something to go forward with
 		if( !empty( $user_lesson_date ) ) {
@@ -398,11 +413,16 @@ class LM_Helper {
 				<li class="ui-state-default ui-corner-top"><a class="ui-tabs-anchor" href="<?php echo $tab_ajax_attendance_url; ?>">Attendance</a></li>
 				<li class="ui-state-default ui-corner-top"><a class="ui-tabs-anchor" href="<?php echo $tab_ajax_schedule_url; ?>">Class Schedule</a></li>
 				<li class="ui-state-default ui-corner-top"><a class="ui-tabs-anchor" href="<?php echo $tab_ajax_zoom_url; ?>">Zoom</a></li>
-				<li class="ui-state-default ui-corner-top"><a class="ui-tabs-anchor" href="<?php echo $tab_ajax_form_url; ?>">Form</a></li>
+				<li class="ui-state-default ui-corner-top"><a class="ui-tabs-anchor" href="<?php echo $tab_ajax_form_url; ?>">Promise</a></li>
 				<?php
-				if( $show_user_tab ) {
+				if( $show_user_tab && !current_user_can( 'manage_options' ) ) {
 					?>
 					<li class="ui-state-default ui-corner-top"><a class="ui-tabs-anchor" href="<?php echo $tab_ajax_instructions_url; ?>">Lead Instructions</a></li>
+					<?php
+				}
+				if( learndash_is_group_leader_user( $user ) || current_user_can( 'manage_options' ) ) {
+					?>
+					<li class="ui-state-default ui-corner-top"><a class="ui-tabs-anchor" href="<?php echo $admin_ajax_form_url; ?>">Lead Instructions</a></li>
 					<?php
 				}
 				?>
@@ -526,14 +546,29 @@ class LM_Helper {
 
 	public static function get_group_lead_instructions( $group_id )
 	{
-		$user_id = get_current_user_id();
+		$user_id 				= get_current_user_id();
 		$user_lesson_week_num 	= get_user_meta( $user_id, "lm_lesson_group_{$group_id}_week", true );	
 		$week_content 			= get_field( "questions_week_" . $user_lesson_week_num, "option" );
+		$lead_instructions 		= get_field( "lead_instructions" , "option" );
+		$content 				= '';
+		
+		//$content 				.= sprintf('<h4>%s</h4>', __('Lead Instructions'));
+		$content 				.= $lead_instructions;
+		$content 				.= '<br>';
+
 		if( empty($user_lesson_week_num) || empty($week_content) ) {
-			$week_content 			= get_field( "default_questions", "option" );
+			$content 			.= get_field( "default_questions", "option" );
+		} else {
+			if( !current_user_can( 'manage_options' ) ) {
+
+			}
+			$content 			.= $week_content;
+			
 		}
-		$week_content 			= wpautop( $week_content );
-		return $week_content;
+		
+		$output 			= wpautop( $content );
+
+		return $output;
 	}
 
 
@@ -733,7 +768,7 @@ class LM_Helper {
 	{
 		$user = wp_get_current_user();
 
-		if( learndash_is_group_leader_user( $user ) ) {
+		if( learndash_is_group_leader_user( $user ) || current_user_can( 'manage_options' ) ) {
 			echo self::lm_group_leader_form_management( $group_id, $user );
 		} else {
 			echo self::lm_group_member_form_management( $group_id, $user );
@@ -811,7 +846,8 @@ class LM_Helper {
 			$form_id = get_field('student_form', 'option');
 			$form_shortcode = '[gravityform id="'.$form_id.'" title="false" description="false" ajax="true" field_values="group_id='.$group_id.'"]';
 			
-			return apply_filters( 'the_content', do_shortcode( $form_shortcode ) );
+			//return apply_filters( 'the_content', do_shortcode( $form_shortcode ) );
+			return do_shortcode( $form_shortcode );
 		}
 
 	}

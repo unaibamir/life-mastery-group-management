@@ -480,7 +480,7 @@ class Life_Mastery_Group_Management_Public {
 									</select>
 								</td>
 								<td>
-									<select name="users[<?php echo $counter; ?>][]" class="student_select" multiple="multiple" required="required">
+									<select name="users[<?php echo $counter; ?>][]" class="student_select" multiple="multiple">
 										<?php if( $counter > 1 ): ?>
 											<optgroup label="Students">
 												<?php
@@ -636,30 +636,42 @@ class Life_Mastery_Group_Management_Public {
 			dd( $meta_key, false );
 		}*/
 
-		foreach ($group_data['users'] as $key => $users) {
-			$date 	 	= date( $format, strtotime( $group_data['lesson_dates'][$key] ) );
-        	$drip_date 	= strtotime($date);
-        	$drip_date 	= (int) $drip_date + $offset;
-        	$week_num 	= $key - 1;
-        	
-        	if( $week_num < 1 ) {
-        		//continue;
-        	}
+		$query = "DELETE FROM $table WHERE meta_key LIKE 'lm_lesson_group_".$group_data['group_id']."%'";
+		$count = $wpdb->query( $query );
 
-			foreach ($users as $user_num => $user_id) {
+		if( !empty($group_data['users']) ){
+			foreach ($group_data['users'] as $key => $users) {
 
-				// delete all previous ones
-				$query = "DELETE FROM $table WHERE user_id = {$user_id} AND meta_key LIKE 'lm_lesson_group_".$group_data['group_id']."%'";
-				$count = $wpdb->query( $query );
-
-				$user_lesson_date = 'lm_lesson_group_' . $group_data['group_id'].'_date';
-				$user_lesson_week = 'lm_lesson_group_' . $group_data['group_id'].'_week';
+				$date 	 	= date( $format, strtotime( $group_data['lesson_dates'][$key] ) );
+	        	$drip_date 	= strtotime($date);
+	        	$drip_date 	= (int) $drip_date + $offset;
 				
-				update_user_meta( $user_id, $user_lesson_date, $drip_date, '' );
-				update_user_meta( $user_id, $user_lesson_week, $week_num, '' );
-			}
-		}
+	        	$week_num 	= $key - 1;
+	        	
+	        	if( $week_num < 1 ) {
+	        		//continue;
+	        	}
 
+	        	if( !empty($users) ) {
+
+					foreach ($users as $user_num => $user_id) {
+						
+						// delete all previous ones
+						$query = "DELETE FROM $table WHERE user_id = {$user_id} AND meta_key LIKE 'lm_lesson_group_".$group_data['group_id']."%'";
+						$count = $wpdb->query( $query );
+
+						$user_lesson_date = 'lm_lesson_group_' . $group_data['group_id'].'_date';
+						$user_lesson_week = 'lm_lesson_group_' . $group_data['group_id'].'_week';
+
+						update_user_meta( $user_id, $user_lesson_date, $drip_date, '' );
+						update_user_meta( $user_id, $user_lesson_week, $week_num, '' );
+					}
+				}
+			}
+		} else {
+			
+		}
+		
 		/*dd( $group_data );
 
 		dd('finish user settings first');*/
@@ -966,6 +978,10 @@ class Life_Mastery_Group_Management_Public {
 
 			case 'form':
 				echo LM_Helper::get_group_form( $group_id );
+				break;
+
+			case 'admin_form':
+				echo LM_Helper::get_group_lead_instructions( $group_id );
 				break;
 		}
 

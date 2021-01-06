@@ -487,14 +487,14 @@ class LM_Helper {
 			<table class="profile-fields group-attendance">
 				<thead>
 					<tr>
-						<!-- <td>First Name</td>
-						<td>Last Name</td> -->
-						<td>Name</td>
-						<td>Email</td>
+						<!-- <th>First Name</th>
+						<th>Last Name</th> -->
+						<th>Name</th>
+						<th>Email</th>
 						<?php if( learndash_is_group_leader_user( $curr_user ) ): ?>
-							<td>Phone 1</td>
+							<th>Phone 1</th>
 						<?php endif; ?>
-						<td>State</td>
+						<th>State</th>
 					</tr>
 				</thead>
 
@@ -556,14 +556,15 @@ class LM_Helper {
 		$content 				.= $lead_instructions;
 		$content 				.= '<br>';
 
-		if( empty($user_lesson_week_num) || empty($week_content) ) {
-			$content 			.= get_field( "default_questions", "option" );
-		} else {
-			if( !current_user_can( 'manage_options' ) ) {
-
-			}
-			$content 			.= $week_content;
+		if( learndash_is_group_leader_user( $user_id ) ) {
 			
+		} else {
+			if( empty($user_lesson_week_num) || empty($week_content) ) {
+				$content 			.= get_field( "default_questions", "option" );
+			} else {
+				$content 			.= $week_content;
+			}
+
 		}
 		
 		$output 			= wpautop( $content );
@@ -642,7 +643,7 @@ class LM_Helper {
 		?>
 
 		<div style="overflow-x:auto;">
-			<table class="profile-fields group-attendance">
+			<table class="profile-fields group-attendance group-schedule">
 				<thead>
 					<tr>
 						<th class="" style="width: 40px;"><?php echo __('Call #');?></th>
@@ -672,10 +673,10 @@ class LM_Helper {
 								<td style="width: 40px;"><?php echo $call; ?></td>
 								<td style="width: 90px;"><?php echo $call_text; ?></td>
 								<td>
-									<?php echo isset( $group_data['lesson_review_dates'][$counter] ) ? $group_data['lesson_review_dates'][$counter] : ''; ?>
+									<?php echo isset( $group_data['lesson_dates'][$counter] ) ? $group_data['lesson_dates'][$counter] : '' ; ?>
 								</td>
 								<td>
-									<?php echo isset( $group_data['lesson_dates'][$counter] ) ? $group_data['lesson_dates'][$counter] : '' ; ?>
+									<?php echo isset( $group_data['lesson_review_dates'][$counter] ) ? $group_data['lesson_review_dates'][$counter] : ''; ?>
 								</td>
 								<td>
 
@@ -701,7 +702,7 @@ class LM_Helper {
 									if( isset($group_data['users'][$counter]) && !empty($group_data['users'][$counter]) ) {
 										foreach ($group_data['users'][$counter] as $user_id) {
 											$user 			= get_user_by( 'ID', $user_id );
-											$users_info[] 	= $user->display_name . " (".$user->user_email.")";
+											$users_info[] 	= $user->display_name;
 										}
 									}
 									echo implode('<br>', $users_info);
@@ -718,10 +719,10 @@ class LM_Helper {
 									<td>
 										<?php
 										$users_info = array();
-										if( !empty($sections) && isset($group_data['s_users'][array_key_first($sections)]) && !empty($group_data['s_users'][array_key_first($sections)]) ) {
-											foreach ($group_data['s_users'][array_key_first($sections)] as $user_id) {
+										if( isset($group_data['s_users'][0]) && !empty($group_data['s_users'][0]) ) {
+											foreach ($group_data['s_users'][0] as $user_id) {
 												$user 			= get_user_by( 'ID', $user_id );
-												$users_info[] 	= $user->display_name . " (".$user->user_email.")";
+												$users_info[] 	= $user->display_name;
 											}
 										}
 										echo implode('<br>', $users_info);
@@ -738,10 +739,10 @@ class LM_Helper {
 									<td>
 										<?php
 										$users_info = array();
-										if( !empty($sections) && isset($group_data['s_users'][array_key_last($sections)]) && !empty($group_data['s_users'][array_key_last($sections)]) ) {
-											foreach ($group_data['s_users'][array_key_last($sections)] as $user_id) {
+										if( isset($group_data['s_users'][1]) && !empty($group_data['s_users'][1]) ) {
+											foreach ($group_data['s_users'][1] as $user_id) {
 												$user 			= get_user_by( 'ID', $user_id );
-												$users_info[] 	= $user->display_name . " (".$user->user_email.")";
+												$users_info[] 	= $user->display_name;
 											}
 										}
 										echo implode('<br>', $users_info);

@@ -415,10 +415,11 @@ class Life_Mastery_Group_Management_Public {
 			);
 		}		
 		
+		
 		reset($sections);
 		$key = key($sections);
 		unset($sections[$key]);
-		
+
 		?>
 
 		<form action="<?php echo admin_url( 'admin-ajax.php' ) ?>" class="standard-form base" method="POST" autocomplete="off">
@@ -456,13 +457,13 @@ class Life_Mastery_Group_Management_Public {
 								<td style="width: 40px;"><?php echo $call; ?></td>
 								<td style="width: 70px;"><?php echo $call_text; ?></td>
 								<td>
-									<input type="text" name="lesson_review_date[<?php echo $counter; ?>]" class="<?php echo $call <= 2 ? "": "lesson_review_date"; ?>" value="<?php echo $group_data['lesson_review_dates'][$counter]; ?>" <?php echo $call <= 2 ? "readonly": ""; ?> >
+									<input type="text" name="lesson_date[<?php echo $counter; ?>]" class="<?php echo $call == 1 ? "": ""; ?>" value="<?php echo $group_data['lesson_dates'][$counter]; ?>" <?php echo $call == 1 ? "readonly": "readonly"; ?> >
+								</td>
+								<td><input type="text" name="lesson_review_date[<?php echo $counter; ?>]" class="<?php echo $call <= 2 ? "": "lesson_review_date"; ?>" value="<?php echo $group_data['lesson_review_dates'][$counter]; ?>" <?php echo $call <= 2 ? "readonly": ""; ?> >
 									<?php if( $call > 2 ) {
 
 									} ?>
-								</td>
-								<td>
-									<input type="text" name="lesson_date[<?php echo $counter; ?>]" class="<?php echo $call == 1 ? "": "lesson_date"; ?>" value="<?php echo $group_data['lesson_dates'][$counter]; ?>" <?php echo $call == 1 ? "readonly": ""; ?> >
+									
 								</td>
 								<td>
 									<select name="lm_lessons[<?php echo $counter; ?>][]" id="lessons-<?php echo $counter; ?>" class="lesson_select" multiple="multiple" >
@@ -521,15 +522,15 @@ class Life_Mastery_Group_Management_Public {
 								<tr>
 									<td colspan="5">Phase 1</td>
 									<td>
-										<input type="hidden" name="section[]" value="<?php echo array_key_first($sections); ?>">
-										<select name="s_users[<?php echo array_key_first($sections); ?>][]" class="student_select" multiple="multiple" >
+										<input type="hidden" name="section[]" value="0">
+										<select name="s_users[0][]" class="student_select" multiple="multiple" >
 											
 
 											<optgroup label="Leaders">
 												<?php
 												foreach ($members['leaders'] as $member) {
 													$selected = '';
-													if( isset($group_data['s_users'][array_key_first($sections)]) && in_array($member['ID'], $group_data['s_users'][array_key_first($sections)]) ) {
+													if( isset($group_data['s_users'][0]) && in_array($member['ID'], $group_data['s_users'][0]) ) {
 														$selected = 'selected="selected"';
 													}
 													?>
@@ -549,15 +550,15 @@ class Life_Mastery_Group_Management_Public {
 								<tr>
 									<td colspan="5">Phase 2</td>
 									<td>
-										<input type="hidden" name="section[]" value="<?php echo array_key_last($sections); ?>">
-										<select name="s_users[<?php echo array_key_last($sections); ?>][]" class="student_select" multiple="multiple" >
+										<input type="hidden" name="section[]" value="<?php echo 1; ?>">
+										<select name="s_users[<?php echo 1; ?>][]" class="student_select" multiple="multiple" >
 											
 
 											<optgroup label="Leaders">
 												<?php
 												foreach ($members['leaders'] as $member) {
 													$selected = '';
-													if( isset($group_data['s_users'][array_key_last($sections)]) && in_array($member['ID'], $group_data['s_users'][array_key_last($sections)]) ) {
+													if( isset($group_data['s_users'][1]) && in_array($member['ID'], $group_data['s_users'][1]) ) {
 														$selected = 'selected="selected"';
 													}
 													?>

@@ -137,7 +137,7 @@ class Life_Mastery_Group_Management_Admin {
 				<th><label for="lm_group_tag"><?php echo __('Drip Course Lessons'); ?></label></th></th>
 				<td>
 					<input type="checkbox" name="lm_drip_lessons" value="yes">
-					<p class="description">"Automatically generate group course dates (based on date in the Infusionsoft tag) and drip dates for the course lessons (based on the generated dates).</p>
+					<p class="description">Automatically generate group course dates (based on date in the Infusionsoft tag) and drip dates for the course lessons (based on the generated dates).</p>
 					<p class="description">NOTE: Checking the box will reset any date changes made by the Group Leader!</p>
 				</td>
 			</tr>

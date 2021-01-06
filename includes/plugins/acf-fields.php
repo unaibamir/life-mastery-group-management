@@ -93,7 +93,7 @@ acf_add_local_field_group(array(
 				'class' => '',
 				'id' => '',
 			),
-			'message' => 'This sections provides the option to add/modify the content of questions list associated to each lesson week. These questions list of each week will appear on Groups/Classes tab area for students before one week of their leading week. If any content of any week\'s is empty or not provided, the default list questions would be displayed.',
+			'message' => 'These sections provide the option to add/modify the lesson questions for each week. The list of questions for each week will appear on Groups/Classes tab area for students one week before they are assigned to lead.<br>If no questions are listed for a given week, the default list of questions will be displayed.',
 			'new_lines' => 'wpautop',
 			'esc_html' => 0,
 		),

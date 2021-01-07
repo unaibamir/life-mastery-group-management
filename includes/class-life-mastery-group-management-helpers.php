@@ -174,7 +174,7 @@ class LM_Helper {
         }
 
         $meta_key = 'uncanny_pro_toolkitUncannyDripLessonsByGroup-' . $group_id;
-
+        
         foreach ($data as $week_num => $lesson_info) {
         	
         	$date 	 	= date( $format, strtotime( $lesson_info['lesson_date'] ) );
@@ -391,7 +391,8 @@ class LM_Helper {
 
 		$show_user_tab		= false;
 		$user_id 			= get_current_user_id();
-		$user_lesson_date 	= get_user_meta( $user_id, "lm_lesson_group_{$group_id}_date", true );
+
+		/*$user_lesson_date 	= get_user_meta( $user_id, "lm_lesson_group_{$group_id}_date", true );
 		$user_lesson_week 	= get_user_meta( $user_id, "lm_lesson_group_{$group_id}_week", true );
 
 
@@ -403,6 +404,20 @@ class LM_Helper {
 
 			if( ($date_interval->format('%R%a') > -1) && ($date_interval->format('%R%a') < 7) ) {
 				$show_user_tab 	= true;
+			}
+		}*/
+
+		$user_lesson_data = get_user_meta( $user_id, "lm_lesson_group_{$group_id}_info", true );
+		if( !empty( $user_lesson_data ) && is_array( $user_lesson_data ) ) {
+			$current_date 		= new DateTime();
+			foreach ($user_lesson_data as $lesson_info ) {
+				$lesson_date 		= new DateTime( date('Y-m-d', $lesson_info['date']) );
+				$date_interval 		= $current_date->diff( $lesson_date );
+				if( ($date_interval->format('%R%a') > -1) && ($date_interval->format('%R%a') < 7) ) {
+					$show_user_tab 	= true;
+				} else {
+					continue;
+				}
 			}
 		}
 
@@ -547,9 +562,10 @@ class LM_Helper {
 	public static function get_group_lead_instructions( $group_id )
 	{
 		$user_id 				= get_current_user_id();
-		$user_lesson_week_num 	= get_user_meta( $user_id, "lm_lesson_group_{$group_id}_week", true );	
-		$week_content 			= get_field( "questions_week_" . $user_lesson_week_num, "option" );
+		$user_lesson_data 		= get_user_meta( $user_id, "lm_lesson_group_{$group_id}_info", true );	
+		//$week_content 			= get_field( "questions_week_" . $user_lesson_week_num, "option" );
 		$lead_instructions 		= get_field( "lead_instructions" , "option" );
+		$defult_instructions 	= get_field( "default_questions", "option" );
 		$content 				= '';
 		
 		//$content 				.= sprintf('<h4>%s</h4>', __('Lead Instructions'));
@@ -557,11 +573,55 @@ class LM_Helper {
 		$content 				.= '<br>';
 
 		if( learndash_is_group_leader_user( $user_id ) ) {
-			
+
+			$group_data = get_post_meta( $group_id, 'lm_group_data', true );
+			if( !empty($group_data) && isset($group_data['lesson_dates']) && !empty( $group_data['lesson_dates'] ) ) {
+				$current_date 		= new DateTime();
+				$week_num = '';
+				foreach ($group_data['lesson_dates'] as $key => $lesson_date ) {
+					
+					if( $key == 0 ) {
+						//continue;
+					}
+
+					$lesson_date 		= new DateTime( date('Y-m-d', strtotime($lesson_date)) );
+					$date_interval 		= $current_date->diff( $lesson_date );
+
+					if( ($date_interval->format('%R%a') > -1) && ($date_interval->format('%R%a') < 7) ) {
+						$week_num 	= $key - 1;
+						break;
+					}
+				}
+
+				if( $week_num ) {
+
+					$week_content 	= get_field( "questions_week_" . $week_num, "option" );
+					$content 		.= $week_content;
+				}
+
+				
+			}
+
 		} else {
-			if( empty($user_lesson_week_num) || empty($week_content) ) {
-				$content 			.= get_field( "default_questions", "option" );
+			if( !empty($user_lesson_data) && is_array($user_lesson_data) ) {
+				$week_num = '';
+				$current_date 		= new DateTime();
+				foreach ($user_lesson_data as $key => $lesson_info ) {
+					$lesson_date 		= new DateTime( date('Y-m-d', $lesson_info['date']) );
+					$date_interval 		= $current_date->diff( $lesson_date );
+					if( ($date_interval->format('%R%a') > -1) && ($date_interval->format('%R%a') < 7) ) {
+						$week_num 	= $lesson_info['week'];
+						break;
+					}
+				}
+
+				if( $week_num ) {
+					$week_content 	= get_field( "questions_week_" . $week_num, "option" );
+					$content 		.= $week_content;
+				}
+				
 			} else {
+				$content 			.= $defult_instructions;
 				$content 			.= $week_content;
 			}
 

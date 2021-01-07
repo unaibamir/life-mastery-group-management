@@ -229,7 +229,9 @@ class Life_Mastery_Group_Management_Public {
         }
 
         $common_group_ids = array_unique($common_group_ids);
-        arsort( $user_group_ids );
+        
+        array_reverse( $user_group_ids );
+        
 
         if( !empty( $common_group_ids ) ) {
 
@@ -641,7 +643,46 @@ class Life_Mastery_Group_Management_Public {
 		$count = $wpdb->query( $query );
 
 		if( !empty($group_data['users']) ){
+			$user_data = array();
 			foreach ($group_data['users'] as $key => $users) {
+
+				
+
+				$date 	 	= date( $format, strtotime( $group_data['lesson_dates'][$key] ) );
+	        	$drip_date 	= strtotime($date);
+	        	$drip_date 	= (int) $drip_date + $offset;
+
+	        	$week_num 	= $key - 1;
+	        	
+	        	if( $week_num < 1 ) {
+	        		//continue;
+	        	}
+
+				$data = array(
+					'date'	=>	$drip_date,
+					'week'	=>	$week_num
+				);
+
+				if( !empty($users) ) {
+					foreach ( $users as $user_num => $user_id ) {
+						if( !isset( $user_data[$user_id] ) ) {
+							$user_data[$user_id] = array();
+						}
+						array_push( $user_data[$user_id], $data );
+					}
+				}				
+			}
+
+			if( !empty( $user_data ) ) {
+				foreach ( $user_data as $user_id => $data ) {
+					$user_meta_key = 'lm_lesson_group_' . $group_data['group_id'].'_info';
+					update_user_meta( $user_id, $user_meta_key, $data, '' );
+				}
+			}
+
+			//dd('asdasd');
+
+			/*foreach ($group_data['users'] as $key => $users) {
 
 				$date 	 	= date( $format, strtotime( $group_data['lesson_dates'][$key] ) );
 	        	$drip_date 	= strtotime($date);
@@ -668,7 +709,7 @@ class Life_Mastery_Group_Management_Public {
 						update_user_meta( $user_id, $user_lesson_week, $week_num, '' );
 					}
 				}
-			}
+			}*/
 		} else {
 			
 		}
@@ -677,7 +718,7 @@ class Life_Mastery_Group_Management_Public {
 
 		dd('finish user settings first');*/
 
-		LM_Helper::drip_public_group_lessons( $_POST['lm_group_id'], $group_data );
+		//LM_Helper::drip_public_group_lessons( $_POST['lm_group_id'], $group_data );
 
 		//dd($group_data);
 

@@ -18,7 +18,7 @@
 
 	var $student_select = $('.student_select').select2({
 		width: '100%',
-		maximumSelectionLength: 2,
+		maximumSelectionLength: 3,
 	});
 
 	$('.lm-user-select').select2();

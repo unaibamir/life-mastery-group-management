@@ -29,7 +29,9 @@
         }
     });
 
-    $(".lm-group_member-details").tabs({                
+    var $group_member_tabs = $(".lm-group_member-details");
+
+    $group_member_tabs.tabs({
         beforeLoad: function(event, ui) {
             ui.panel.html('Loading... ')
         },

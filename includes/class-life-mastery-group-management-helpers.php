@@ -184,6 +184,10 @@ class LM_Helper {
         	foreach ( $lesson_info['lesson_data'] as $lesson_id) {
         		update_post_meta( $lesson_id, $meta_key, $drip_date, '' );
         	}
+
+        	if( $week_num == 1 ) {
+        		delete_post_meta( $lesson_info['lesson_data'][0], $meta_key );
+        	}
         }
 	}
 
@@ -442,7 +446,6 @@ class LM_Helper {
 				}
 				?>
 			</ul>
-
 		</div>
 
 		<?php
@@ -726,6 +729,11 @@ class LM_Helper {
 								$i--;
 							} else {
 								$call_text = sprintf( __('Week %s' ), $i );
+							}
+
+							if( $counter == 0 || $counter == 1 ) {
+								$group_data['lesson_dates'][$counter] = '';
+								$group_data['lesson_review_dates'][$counter] = '';
 							}
 
 							?>

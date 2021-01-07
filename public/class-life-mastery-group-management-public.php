@@ -454,6 +454,11 @@ class Life_Mastery_Group_Management_Public {
 								$call_text = sprintf( __('Week %s' ), $i );
 							}
 
+							if( $counter == 0 || $counter == 1 ) {
+								$group_data['lesson_dates'][$counter] = '';
+								$group_data['lesson_review_dates'][$counter] = '';
+							}
+
 							?>
 							<tr>
 								<td style="width: 40px;"><?php echo $call; ?></td>
@@ -461,10 +466,8 @@ class Life_Mastery_Group_Management_Public {
 								<td>
 									<input type="text" name="lesson_date[<?php echo $counter; ?>]" class="<?php echo $call == 1 ? "": ""; ?>" value="<?php echo $group_data['lesson_dates'][$counter]; ?>" <?php echo $call == 1 ? "readonly": "readonly"; ?> >
 								</td>
-								<td><input type="text" name="lesson_review_date[<?php echo $counter; ?>]" class="<?php echo $call <= 2 ? "": "lesson_review_date"; ?>" value="<?php echo $group_data['lesson_review_dates'][$counter]; ?>" <?php echo $call <= 2 ? "readonly": ""; ?> >
-									<?php if( $call > 2 ) {
-
-									} ?>
+								<td>
+									<input type="text" name="lesson_review_date[<?php echo $counter; ?>]" class="<?php echo $call <= 2 ? "": "lesson_review_date"; ?>" value="<?php echo $group_data['lesson_review_dates'][$counter]; ?>" <?php echo $call <= 2 ? "readonly": ""; ?> >
 									
 								</td>
 								<td>

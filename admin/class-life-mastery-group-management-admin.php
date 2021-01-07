@@ -188,7 +188,7 @@ class Life_Mastery_Group_Management_Admin {
         array_unshift($course_lesson_weeks, array(9999999));
 
         LM_Helper::drip_admin_group_lessons( $group_id );
-
+        
         foreach ($lesson_dates as $key => $lesson_date) {
         	$old_date = explode('-', $lesson_date);
         	$new_date = $old_date[1] . '/' . $old_date[2] . '/' . $old_date[0];

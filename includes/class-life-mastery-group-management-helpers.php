@@ -44,7 +44,7 @@ class LM_Helper {
 	}
 
 
-	public static function generate_lesson_dates( $group_id, $weeks, $start_date ) {
+	public static function generate_lesson_dates_old( $group_id, $weeks, $start_date ) {
 		//dd($weeks);
 
 		$dates 		= array();
@@ -65,7 +65,7 @@ class LM_Helper {
 		return $dates;
 	}
 
-	public static function generate_lesson_discuss_dates( $group_id, $weeks, $start_date ) {
+	public static function generate_lesson_discuss_dates_old( $group_id, $weeks, $start_date ) {
 		
 		$lesson_dates 	= LM_Helper::generate_lesson_dates( $group_id, $weeks, $start_date );
 
@@ -79,6 +79,46 @@ class LM_Helper {
 		}
 		
 		$dates[0] = $dates[1] = '';
+		$dates = array_values($dates);
+		return $dates;
+	}
+
+	public static function generate_lesson_dates( $group_id, $weeks, $start_date ) {
+		
+		$discuss_dates 	= LM_Helper::generate_lesson_discuss_dates( $group_id, $weeks, $start_date );
+		$dates 		= array();
+		
+		$date 		= '';
+
+		foreach ($discuss_dates as $key => $discuss_date) {
+			$date 	 = date( 'Y-m-d', strtotime( "-3 week monday", strtotime( $discuss_date ) ) );
+			$dates[] = $date;
+			continue;
+		}
+
+		
+		$dates = array_values($dates);
+		
+		return $dates;
+	}
+
+	public static function generate_lesson_discuss_dates( $group_id, $weeks, $start_date ) {
+		
+		//$lesson_dates 	= LM_Helper::generate_lesson_dates( $group_id, $weeks, $start_date );
+
+		$dates 		= array();
+		$dates[] 	= $start_date;
+		$date 		= '';
+
+
+		for ($i = 0; $i < $weeks['total_weeks'] + 1; $i++) {
+			$date 	 = date( 'Y-m-d', strtotime( "+1 week", strtotime( !empty($date) ? $date : $start_date ) ) );
+			$dates[] 	= $date;
+			continue;
+		}
+		
+		unset($dates[8]);
+		
 		$dates = array_values($dates);
 		return $dates;
 	}
@@ -395,6 +435,7 @@ class LM_Helper {
 
 		$show_user_tab		= false;
 		$user_id 			= get_current_user_id();
+		$user 				= wp_get_current_user();
 
 		/*$user_lesson_date 	= get_user_meta( $user_id, "lm_lesson_group_{$group_id}_date", true );
 		$user_lesson_week 	= get_user_meta( $user_id, "lm_lesson_group_{$group_id}_week", true );
@@ -412,6 +453,7 @@ class LM_Helper {
 		}*/
 
 		$user_lesson_data = get_user_meta( $user_id, "lm_lesson_group_{$group_id}_info", true );
+		
 		if( !empty( $user_lesson_data ) && is_array( $user_lesson_data ) ) {
 			$current_date 		= new DateTime();
 			foreach ($user_lesson_data as $lesson_info ) {
@@ -575,13 +617,15 @@ class LM_Helper {
 		$content 				.= $lead_instructions;
 		$content 				.= '<br>';
 
-		if( learndash_is_group_leader_user( $user_id ) ) {
+		if( learndash_is_group_leader_user( $user_id ) || current_user_can( 'manage_options' ) ) {
 
 			$group_data = get_post_meta( $group_id, 'lm_group_data', true );
-			if( !empty($group_data) && isset($group_data['lesson_dates']) && !empty( $group_data['lesson_dates'] ) ) {
+			
+			if( !empty($group_data) && isset($group_data['lesson_review_dates']) && !empty( $group_data['lesson_review_dates'] ) ) {
 				$current_date 		= new DateTime();
 				$week_num = '';
-				foreach ($group_data['lesson_dates'] as $key => $lesson_date ) {
+
+				foreach ($group_data['lesson_review_dates'] as $key => $lesson_date ) {
 					
 					if( $key == 0 ) {
 						//continue;
@@ -589,15 +633,17 @@ class LM_Helper {
 
 					$lesson_date 		= new DateTime( date('Y-m-d', strtotime($lesson_date)) );
 					$date_interval 		= $current_date->diff( $lesson_date );
-
-					if( ($date_interval->format('%R%a') > -1) && ($date_interval->format('%R%a') < 7) ) {
+					$interval 			= $date_interval->format('%R%a');
+					
+					if( ( $interval > -1 ) && ( $interval < ($key == 8 ? 14 : 7) ) ) {
 						$week_num 	= $key - 1;
 						break;
 					}
+					
 				}
-
-				if( $week_num ) {
-
+				
+				if( $week_num || $week_num == 0 ) {
+					
 					$week_content 	= get_field( "questions_week_" . $week_num, "option" );
 					$content 		.= $week_content;
 				}
@@ -606,9 +652,11 @@ class LM_Helper {
 			}
 
 		} else {
+
 			if( !empty($user_lesson_data) && is_array($user_lesson_data) ) {
 				$week_num = '';
 				$current_date 		= new DateTime();
+				
 				foreach ($user_lesson_data as $key => $lesson_info ) {
 					$lesson_date 		= new DateTime( date('Y-m-d', $lesson_info['date']) );
 					$date_interval 		= $current_date->diff( $lesson_date );
@@ -733,7 +781,7 @@ class LM_Helper {
 
 							if( $counter == 0 || $counter == 1 ) {
 								$group_data['lesson_dates'][$counter] = '';
-								$group_data['lesson_review_dates'][$counter] = '';
+								//$group_data['lesson_review_dates'][$counter] = '';
 							}
 
 							?>

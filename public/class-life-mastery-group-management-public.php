@@ -456,7 +456,7 @@ class Life_Mastery_Group_Management_Public {
 
 							if( $counter == 0 || $counter == 1 ) {
 								$group_data['lesson_dates'][$counter] = '';
-								$group_data['lesson_review_dates'][$counter] = '';
+								//$group_data['lesson_review_dates'][$counter] = '';
 							}
 
 							?>
@@ -467,7 +467,7 @@ class Life_Mastery_Group_Management_Public {
 									<input type="text" name="lesson_date[<?php echo $counter; ?>]" class="<?php echo $call == 1 ? "": ""; ?>" value="<?php echo $group_data['lesson_dates'][$counter]; ?>" <?php echo $call == 1 ? "readonly": "readonly"; ?> >
 								</td>
 								<td>
-									<input type="text" name="lesson_review_date[<?php echo $counter; ?>]" class="<?php echo $call <= 2 ? "": "lesson_review_date"; ?>" value="<?php echo $group_data['lesson_review_dates'][$counter]; ?>" <?php echo $call <= 2 ? "readonly": ""; ?> >
+									<input type="text" name="lesson_review_date[<?php echo $counter; ?>]" class="<?php echo $call <= 1 ? "": "lesson_review_date"; ?>" value="<?php echo $group_data['lesson_review_dates'][$counter]; ?>" readonly <?php echo $call <= 1 ? "readonly": ""; ?> >
 									
 								</td>
 								<td>
@@ -608,8 +608,8 @@ class Life_Mastery_Group_Management_Public {
 
 		$lesson_drip_dates = $group_attendance_dates = $lesson_review_dates = array();
 
-		if( isset($_POST['lesson_date']) && !empty($_POST['lesson_date']) ) {
-			foreach ($_POST['lesson_date'] as $lesson_date ) {
+		if( isset($_POST['lesson_review_date']) && !empty($_POST['lesson_review_date']) ) {
+			foreach ($_POST['lesson_review_date'] as $lesson_date ) {
 				if( empty($lesson_date) ) continue;
 				$date 		= date( 'Y-m-d H:i:s', strtotime($lesson_date));
 				$group_attendance_dates[] = $date;
@@ -651,7 +651,7 @@ class Life_Mastery_Group_Management_Public {
 
 				
 
-				$date 	 	= date( $format, strtotime( $group_data['lesson_dates'][$key] ) );
+				$date 	 	= date( $format, strtotime( $group_data['lesson_review_dates'][$key] ) );
 	        	$drip_date 	= strtotime($date);
 	        	$drip_date 	= (int) $drip_date + $offset;
 

@@ -167,6 +167,7 @@ class Life_Mastery_Group_Management_Admin {
         	return;
         }
 
+        $group_data 	= get_post_meta( $group_id, 'lm_group_data', true );
         $tag_id 		= $_POST['lm_group_tag'];
         $tag_query 		= "SELECT GroupName FROM _isContactGroup WHERE TagId={$tag_id}";
         $tag_name 		= $wpdb->get_col( $tag_query );
@@ -179,9 +180,9 @@ class Life_Mastery_Group_Management_Admin {
 
         $weeks 			= LM_Helper::get_group_course_weeks( $group_id );
 
-        $lesson_dates 	= LM_Helper::generate_lesson_dates( $group_id, $weeks, $start_date );
-        
         $discuss_dates 	= LM_Helper::generate_lesson_discuss_dates( $group_id, $weeks, $start_date );
+        
+        $lesson_dates 	= LM_Helper::generate_lesson_dates( $group_id, $weeks, $start_date );
 
         $course_lesson_weeks = LM_Helper::get_group_course_lesson_weeks( $group_id );
         
@@ -197,7 +198,7 @@ class Life_Mastery_Group_Management_Admin {
 
         foreach ($discuss_dates as $key => $discuss_date) {
         	if( $key <= 1 ) {
-        		continue;
+        		//continue;
         	} 
         	$old_date = explode('-', $discuss_date);
         	$new_date = $old_date[1] . '/' . $old_date[2] . '/' . $old_date[0];
@@ -208,14 +209,14 @@ class Life_Mastery_Group_Management_Admin {
         	'lesson_dates'			=>	$lesson_dates,
         	'lesson_review_dates'	=>	$discuss_dates,
         	'lm_lessons'			=>	$course_lesson_weeks,
-        	'users'					=>	array(),
-        	's_users'				=>	array()
+        	'users'					=>	isset($group_data['users']) && !empty($group_data['users']) ? $group_data['users'] : array(),
+        	's_users'				=>	isset($group_data['s_users']) && !empty($group_data['s_users']) ? $group_data['s_users'] : array()
         );
 
 
         update_post_meta( $group_id, 'lm_group_data', $data, '' );
 
-        update_post_meta( $group_id, 'lm_group_attendance_dates', $lesson_dates, '' );
+        update_post_meta( $group_id, 'lm_group_attendance_dates', $discuss_dates, '' );
 
 	}
 

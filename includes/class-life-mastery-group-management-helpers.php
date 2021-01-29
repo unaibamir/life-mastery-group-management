@@ -117,7 +117,7 @@ class LM_Helper {
 			continue;
 		}
 		
-		unset($dates[8]);
+		//unset($dates[8]);
 		
 		$dates = array_values($dates);
 		return $dates;

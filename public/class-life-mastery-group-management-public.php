@@ -229,9 +229,7 @@ class Life_Mastery_Group_Management_Public {
         }
 
         $common_group_ids = array_unique($common_group_ids);
-        
-        array_reverse( $user_group_ids );
-        
+        $common_group_ids = array_reverse( $common_group_ids );
 
         if( !empty( $common_group_ids ) ) {
 
@@ -636,12 +634,23 @@ class Life_Mastery_Group_Management_Public {
 		$group_data['s_users'] 			= isset($_POST['s_users']) ? $_POST['s_users'] : array();
 		$group_data['users_data'] 		= array();
 
-
 		/*foreach ($group_data['lesson_dates'] as $key => $lesson_date) {
 			$meta_key = 'lm-lesson-date-' . $_POST['lm_group_id'] . '-'  ;
 			dd( $meta_key, false );
 		}*/
+		//dd($group_data['lesson_dates'], false);
+		foreach ( $group_data['lesson_review_dates'] as $discuss_date) {
+			//$date 		= date( 'Y-m-d H:i:s', strtotime($lesson_date));
+			$date 	 	= date( 'm/d/Y', strtotime( "-3 week monday", strtotime( $discuss_date ) ) );
+			
+			$dates[] 	= $date;
+			continue;			
+			
+		}
 
+		$dates = array_values($dates);
+		$group_data['lesson_dates'] = $dates;
+		//dd($group_data['lesson_dates']);
 		$query = "DELETE FROM $table WHERE meta_key LIKE 'lm_lesson_group_".$group_data['group_id']."%'";
 		$count = $wpdb->query( $query );
 
@@ -683,36 +692,6 @@ class Life_Mastery_Group_Management_Public {
 				}
 			}
 
-			//dd('asdasd');
-
-			/*foreach ($group_data['users'] as $key => $users) {
-
-				$date 	 	= date( $format, strtotime( $group_data['lesson_dates'][$key] ) );
-	        	$drip_date 	= strtotime($date);
-	        	$drip_date 	= (int) $drip_date + $offset;
-				
-	        	$week_num 	= $key - 1;
-	        	
-	        	if( $week_num < 1 ) {
-	        		//continue;
-	        	}
-
-	        	if( !empty($users) ) {
-
-					foreach ($users as $user_num => $user_id) {
-						
-						// delete all previous ones
-						$query = "DELETE FROM $table WHERE user_id = {$user_id} AND meta_key LIKE 'lm_lesson_group_".$group_data['group_id']."%'";
-						$count = $wpdb->query( $query );
-
-						$user_lesson_date = 'lm_lesson_group_' . $group_data['group_id'].'_date';
-						$user_lesson_week = 'lm_lesson_group_' . $group_data['group_id'].'_week';
-
-						update_user_meta( $user_id, $user_lesson_date, $drip_date, '' );
-						update_user_meta( $user_id, $user_lesson_week, $week_num, '' );
-					}
-				}
-			}*/
 		} else {
 			
 		}
@@ -721,7 +700,7 @@ class Life_Mastery_Group_Management_Public {
 
 		dd('finish user settings first');*/
 
-		//LM_Helper::drip_public_group_lessons( $_POST['lm_group_id'], $group_data );
+		LM_Helper::drip_public_group_lessons( $_POST['lm_group_id'], $group_data );
 
 		//dd($group_data);
 
@@ -1025,8 +1004,12 @@ class Life_Mastery_Group_Management_Public {
 				echo LM_Helper::get_group_form( $group_id );
 				break;
 
-			case 'admin_form':
-				echo LM_Helper::get_group_lead_instructions( $group_id );
+			case 'leader_instructions_1':
+				echo LM_Helper::get_group_lead_instructions_one( $group_id );
+				break;
+
+			case 'leader_instructions_2':
+				echo LM_Helper::get_group_lead_instructions_two( $group_id );
 				break;
 		}
 

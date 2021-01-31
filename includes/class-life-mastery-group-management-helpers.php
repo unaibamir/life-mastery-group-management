@@ -425,10 +425,17 @@ class LM_Helper {
 			'_wpnonce'	=>	wp_create_nonce( 'lm_ajax_tab_nonce' )
 		), admin_url( 'admin-ajax.php' ));
 
-		$admin_ajax_form_url = add_query_arg(array(
+		$tab_leader_instructions_url = add_query_arg(array(
 			'action'	=>	'lm_load_group_data',
 			'group_id'	=>	$group_id,
-			'data'		=>	'admin_form',
+			'data'		=>	'leader_instructions_1',
+			'_wpnonce'	=>	wp_create_nonce( 'lm_ajax_tab_nonce' )
+		), admin_url( 'admin-ajax.php' ));
+
+		$tab_leader_instructions_two_url = add_query_arg(array(
+			'action'	=>	'lm_load_group_data',
+			'group_id'	=>	$group_id,
+			'data'		=>	'leader_instructions_2',
 			'_wpnonce'	=>	wp_create_nonce( 'lm_ajax_tab_nonce' )
 		), admin_url( 'admin-ajax.php' ));
 
@@ -437,30 +444,25 @@ class LM_Helper {
 		$user_id 			= get_current_user_id();
 		$user 				= wp_get_current_user();
 
-		/*$user_lesson_date 	= get_user_meta( $user_id, "lm_lesson_group_{$group_id}_date", true );
-		$user_lesson_week 	= get_user_meta( $user_id, "lm_lesson_group_{$group_id}_week", true );
-
-
-		// ensure we have something to go forward with
-		if( !empty( $user_lesson_date ) ) {
-			$current_date 		= new DateTime();
-			$lesson_date 		= new DateTime( date('Y-m-d', $user_lesson_date) );
-			$date_interval 		= $current_date->diff( $lesson_date );
-
-			if( ($date_interval->format('%R%a') > -1) && ($date_interval->format('%R%a') < 7) ) {
-				$show_user_tab 	= true;
-			}
-		}*/
-
 		$user_lesson_data = get_user_meta( $user_id, "lm_lesson_group_{$group_id}_info", true );
 		
 		if( !empty( $user_lesson_data ) && is_array( $user_lesson_data ) ) {
-			$current_date 		= new DateTime();
+			$date 				= 'now';
+			//$date 				= '2021-02-09 23:59:59';
+			//$date 				= '2021-02-03 00:00:00';
+			$current_date 		= new DateTime( $date, new DateTimeZone( "America/Los_Angeles" ));
 			foreach ($user_lesson_data as $lesson_info ) {
-				$lesson_date 		= new DateTime( date('Y-m-d', $lesson_info['date']) );
+
+				$lesson_date 		= new DateTime( date('Y-m-d 23:59:59', $lesson_info['date']), new DateTimeZone( "America/Los_Angeles" ) );
 				$date_interval 		= $current_date->diff( $lesson_date );
-				if( ($date_interval->format('%R%a') > -1) && ($date_interval->format('%R%a') < 7) ) {
+				//dd($date_interval->d % 7, false);
+
+				$date_diff 			= $date_interval->format('%R%a');
+				/*dd($date_diff, false);
+				dd(var_export(strpos($date_diff, '-'), true), false);*/
+				if( strpos($date_diff, '-') != 0 || strpos($date_diff, '-') === false && ($date_diff >= 0) && ($date_diff < 7) ) {
 					$show_user_tab 	= true;
+					break;
 				} else {
 					continue;
 				}
@@ -476,14 +478,15 @@ class LM_Helper {
 				<li class="ui-state-default ui-corner-top"><a class="ui-tabs-anchor" href="<?php echo $tab_ajax_zoom_url; ?>">Zoom</a></li>
 				<li class="ui-state-default ui-corner-top"><a class="ui-tabs-anchor" href="<?php echo $tab_ajax_form_url; ?>">Promise</a></li>
 				<?php
-				if( $show_user_tab && !current_user_can( 'manage_options' ) ) {
+				if( $show_user_tab && !current_user_can( 'manage_options' ) && !learndash_is_group_leader_user( $user ) ) {
 					?>
 					<li class="ui-state-default ui-corner-top"><a class="ui-tabs-anchor" href="<?php echo $tab_ajax_instructions_url; ?>">Lead Instructions</a></li>
 					<?php
 				}
 				if( learndash_is_group_leader_user( $user ) || current_user_can( 'manage_options' ) ) {
 					?>
-					<li class="ui-state-default ui-corner-top"><a class="ui-tabs-anchor" href="<?php echo $admin_ajax_form_url; ?>">Lead Instructions</a></li>
+					<li class="ui-state-default ui-corner-top"><a class="ui-tabs-anchor" href="<?php echo $tab_leader_instructions_url; ?>">Lead Instructions 1</a></li>
+					<li class="ui-state-default ui-corner-top"><a class="ui-tabs-anchor" href="<?php echo $tab_leader_instructions_two_url; ?>">Lead Instructions 2</a></li>
 					<?php
 				}
 				?>
@@ -491,41 +494,6 @@ class LM_Helper {
 		</div>
 
 		<?php
-		$output = ob_get_contents();
-        ob_end_clean();
-        return $output;
-	}
-
-	public static function get_group_details( $group_id ) {
-
-		ob_start();
-
-		?>
-		<div class="lm-group-details tabs">
-			<ul>
-				<li><a href="#group-<?php echo $group_id; ?>-roster">Roster</a></li>
-				<li><a href="#group-<?php echo $group_id; ?>-attendance">Attendance</a></li>
-				<li><a href="#group-<?php echo $group_id; ?>-schedule">Class Schedule</a></li>
-				<li><a href="#group-<?php echo $group_id; ?>-zoom">Zoom</a></li>
-			</ul>
-			<div id="group-<?php echo $group_id; ?>-roster">
-				<?php echo LM_Helper::get_group_roster( $group_id ); ?>
-			</div>
-
-			<div id="group-<?php echo $group_id; ?>-attendance">
-				<?php echo LM_Helper::get_group_attendance_view( $group_id ); ?>
-			</div>
-
-			<div id="group-<?php echo $group_id; ?>-schedule">
-				<?php echo LM_Helper::get_group_schedule_view( $group_id ); ?>
-			</div>
-
-			<div id="group-<?php echo $group_id; ?>-zoom">
-				<?php echo LM_Helper::get_group_zoom_info( $group_id ); ?>
-			</div>
-		</div>
-		<?php
-
 		$output = ob_get_contents();
         ob_end_clean();
         return $output;
@@ -617,6 +585,7 @@ class LM_Helper {
 		$content 				.= $lead_instructions;
 		$content 				.= '<br>';
 
+
 		if( learndash_is_group_leader_user( $user_id ) || current_user_can( 'manage_options' ) ) {
 
 			$group_data = get_post_meta( $group_id, 'lm_group_data', true );
@@ -647,20 +616,22 @@ class LM_Helper {
 					$week_content 	= get_field( "questions_week_" . $week_num, "option" );
 					$content 		.= $week_content;
 				}
-
-				
 			}
 
 		} else {
 
 			if( !empty($user_lesson_data) && is_array($user_lesson_data) ) {
 				$week_num = '';
-				$current_date 		= new DateTime();
+				$date 				= 'now';
+				//$date 				= '2021-02-09 23:59:59';
+				$current_date 		= new DateTime($date, new DateTimeZone( "America/Los_Angeles" ));
 				
 				foreach ($user_lesson_data as $key => $lesson_info ) {
-					$lesson_date 		= new DateTime( date('Y-m-d', $lesson_info['date']) );
+					$lesson_date 		= new DateTime( date('Y-m-d 23:59:59', $lesson_info['date']), new DateTimeZone( "America/Los_Angeles" ) );
 					$date_interval 		= $current_date->diff( $lesson_date );
-					if( ($date_interval->format('%R%a') > -1) && ($date_interval->format('%R%a') < 7) ) {
+					$date_diff 			= $date_interval->format('%R%a');
+					//dd($date_diff, false);
+					if( strpos($date_diff, '-') != 0 || strpos($date_diff, '-') === false && ($date_diff >= 0) && ($date_diff < 7) ) {
 						$week_num 	= $lesson_info['week'];
 						break;
 					}
@@ -680,6 +651,109 @@ class LM_Helper {
 		
 		$output 			= wpautop( $content );
 
+		return $output;
+	}
+
+
+	public static function get_group_lead_instructions_one( $group_id ) {
+
+		$user_id 				= get_current_user_id();
+		$user_lesson_data 		= get_user_meta( $user_id, "lm_lesson_group_{$group_id}_info", true );	
+		//$week_content 			= get_field( "questions_week_" . $user_lesson_week_num, "option" );
+		$lead_instructions 		= get_field( "lead_instructions" , "option" );
+		$defult_instructions 	= get_field( "default_questions", "option" );
+		$content 				= '';
+		
+		//$content 				.= sprintf('<h4>%s</h4>', __('Lead Instructions'));
+		$content 				.= $lead_instructions;
+		$content 				.= '<br>';
+
+		$group_data = get_post_meta( $group_id, 'lm_group_data', true );
+		
+		if( !empty($group_data) && isset($group_data['lesson_review_dates']) && !empty( $group_data['lesson_review_dates'] ) ) {
+			$date 				= 'now';
+			//$date 				= '2021-03-01 23:59:59';
+			$current_date 		= new DateTime($date, new DateTimeZone( "America/Los_Angeles" ));
+			$week_num = '';
+
+			foreach ($group_data['lesson_review_dates'] as $key => $lesson_date ) {
+				
+				if( $key == 0 ) {
+					//continue;
+				}
+
+				$lesson_date 		= new DateTime( date('Y-m-d 23:59:59', strtotime($lesson_date)), new DateTimeZone( "America/Los_Angeles" ) );
+				$date_interval 		= $current_date->diff( $lesson_date );
+				$date_diff 			= $date_interval->format('%R%a');
+				if( strpos($date_diff, '-') != 0 || strpos($date_diff, '-') === false && ($date_diff >= 0) && ($date_diff < 7) ) {
+					$week_num 	= $key - 1;
+					break;
+				}
+			}
+			
+			if( $week_num || $week_num == 0 ) {
+				$week_content 	= get_field( "questions_week_" . $week_num, "option" );
+				$content 		.= $week_content;
+			}
+
+			if( $week_num == '-1' ) {
+				$week_content 	= get_field( "tech_check_questions", "option" );
+				$content 		.= $week_content;
+			}
+		}
+
+		$output 			= wpautop( $content );
+		return $output;
+
+	}
+
+	public static function get_group_lead_instructions_two( $group_id ) {
+		$user_id 				= get_current_user_id();
+		$user_lesson_data 		= get_user_meta( $user_id, "lm_lesson_group_{$group_id}_info", true );	
+		//$week_content 			= get_field( "questions_week_" . $user_lesson_week_num, "option" );
+		$lead_instructions 		= get_field( "lead_instructions" , "option" );
+		$defult_instructions 	= get_field( "default_questions", "option" );
+		$content 				= '';
+		
+		//$content 				.= sprintf('<h4>%s</h4>', __('Lead Instructions'));
+		$content 				.= $lead_instructions;
+		$content 				.= '<br>';
+
+		$group_data = get_post_meta( $group_id, 'lm_group_data', true );
+		
+		if( !empty($group_data) && isset($group_data['lesson_review_dates']) && !empty( $group_data['lesson_review_dates'] ) ) {
+			$date 				= 'now';
+			//$date 				= '2021-03-01 23:59:59';
+			$current_date 		= new DateTime($date, new DateTimeZone( "America/Los_Angeles" ));
+			$week_num = '';
+
+			foreach ($group_data['lesson_review_dates'] as $key => $lesson_date ) {
+				
+				if( $key == 0 ) {
+					//continue;
+				}
+
+				$lesson_date 		= new DateTime( date('Y-m-d 23:59:59', strtotime($lesson_date)), new DateTimeZone( "America/Los_Angeles" ) );
+				$date_interval 		= $current_date->diff( $lesson_date );
+				$date_diff 			= $date_interval->format('%R%a');
+				if( strpos($date_diff, '-') != 0 || strpos($date_diff, '-') === false && ($date_diff >= 0) && ($date_diff < 7) ) {
+					$week_num 	= $key;
+					break;
+				}
+			}
+			
+			if( $week_num || $week_num == 0 ) {
+				$week_content 	= get_field( "questions_week_" . $week_num, "option" );
+				$content 		.= $week_content;
+			}
+
+			if( $week_num == '-1' ) {
+				$week_content 	= get_field( "tech_check_questions", "option" );
+				$content 		.= $week_content;
+			}
+		}
+
+		$output 			= wpautop( $content );
 		return $output;
 	}
 

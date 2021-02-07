@@ -227,14 +227,38 @@ class Life_Mastery_Group_Management_Admin {
 		if( function_exists('acf_add_options_page') ) {
 
 			// Register options page.
-			$option_page = acf_add_options_page(array(
-				'page_title'    => __('LM Questions List'),
-				'menu_title'    => __('LM Questions List'),
-				'menu_slug'     => 'lm-instructions-settings',
+			$parent = acf_add_options_page(array(
+				'page_title'    => __('LM Settings'),
+				'menu_title'    => __('LM Settings'),
+				'menu_slug'     => 'lm-settings',
 				'capability'    => 'manage_options',
 				'redirect'      => false,
-				'parent_slug' => 'options-general.php',
+				'update_button' => __('Save Settings', 'acf'),
+				'updated_message' => __("Settings Updated", 'acf'),
+				'icon_url' 		=> 'dashicons-admin-settings',
 			));
+
+			$child = acf_add_options_sub_page(array(
+				'page_title'  => __('Questions List'),
+				'menu_title'  => __('Questions List'),
+				'parent_slug' => $parent['menu_slug'],
+				'menu_slug'   => 'lm-questions-list',
+				'capability'    => 'manage_options',
+				'update_button' => __('Save Settings', 'acf'),
+				'updated_message' => __("Settings Updated", 'acf'),
+			));
+
+			$child_2 = acf_add_options_sub_page(array(
+				'page_title'  => __('Facilitator Instructions'),
+				'menu_title'  => __('Facilitator Instructions'),
+				'parent_slug' => $parent['menu_slug'],
+				'menu_slug'   => 'lm-facilitator-instructions',
+				'capability'    => 'manage_options',
+				'update_button' => __('Save Settings', 'acf'),
+				'updated_message' => __("Settings Updated", 'acf'),
+			));
+
+
 		}
 	}
 

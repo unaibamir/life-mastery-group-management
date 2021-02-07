@@ -1011,6 +1011,10 @@ class Life_Mastery_Group_Management_Public {
 			case 'leader_instructions_2':
 				echo LM_Helper::get_group_lead_instructions_two( $group_id );
 				break;
+
+			case 'facilitator_instructions':
+				echo LM_Helper::get_group_lead_facilitator_instructions( $group_id );
+				break;
 		}
 
 		wp_die();

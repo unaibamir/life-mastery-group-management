@@ -163,10 +163,10 @@ class Life_Mastery_Group_Management {
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts', 999 );
 		$this->loader->add_action( 'add_meta_boxes', $plugin_admin, 'add_meta_boxes' );
 		$this->loader->add_action( 'save_post', $plugin_admin, 'ld_group_save_post', 10, 3 );
-
 		$this->loader->add_action( 'acf/init', $plugin_admin, 'initialize_acf_options_page', 10, 3 );
-
-		$this->loader->add_action( 'acf/prepare_field/name=student_form', $plugin_admin, 'populate_student_form_options', 10, 3 );
+		$this->loader->add_filter( 'acf/prepare_field/name=student_form', $plugin_admin, 'populate_student_form_options', 10, 3 );
+		$this->loader->add_filter( 'mce_css', $plugin_admin, 'tuts_mcekit_editor_style', 10, 1);
+		$this->loader->add_filter( 'acf/prepare_field/name=disable_manage_classes', $plugin_admin, 'populate_ld_groups_acf_select', 10, 3 );
 
 	}
 
@@ -199,6 +199,8 @@ class Life_Mastery_Group_Management {
 		$this->loader->add_action( 'wp_loaded', $plugin_public, 'lm_infusionsoft_listner_callback' );
 
 		$this->loader->add_action( 'wp_ajax_lm_load_student_form_details', $plugin_public, 'load_student_form_details' );
+
+		$this->loader->add_action( 'wp_ajax_lm_load_week_facilitator_instructions', $plugin_public, 'load_week_facilitator_instructions' );
 
 	}
 

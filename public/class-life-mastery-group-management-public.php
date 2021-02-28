@@ -154,7 +154,13 @@ class Life_Mastery_Group_Management_Public {
 	public function lm_group_leader_management( $user ) {
 		global $post;
 
-		if( isset($_GET['lm_group_id'], $_GET['lm_action']) && !empty($_GET['lm_group_id']) && $_GET['lm_action'] == 'edit' ) {
+		$excluded_groups 	= get_field( 'disable_manage_classes', 'option');
+
+		if( isset($_GET['lm_group_id'], $_GET['lm_action']) 
+			&& !empty($_GET['lm_group_id']) 
+			&& $_GET['lm_action'] == 'edit' 
+			&& !in_array($_GET['lm_group_id'], $excluded_groups) 
+		) {
 
 			$this->getGroupEditPages( $user );
 
@@ -168,6 +174,10 @@ class Life_Mastery_Group_Management_Public {
 
 	        $user_group_ids = array_unique($user_group_ids);
 			arsort( $user_group_ids );
+
+			if( !empty($user_group_ids) && !empty( $excluded_groups ) ) {
+	        	$user_group_ids = array_diff( $user_group_ids, $excluded_groups );
+	        }
 
 			if( !empty( $user_group_ids ) ) {
 
@@ -211,14 +221,19 @@ class Life_Mastery_Group_Management_Public {
 
 		global $post;
 
-		if( isset($_GET['lm_group_id'], $_GET['lm_action']) && !empty($_GET['lm_group_id']) && $_GET['lm_action'] == 'edit' ) {
+		$excluded_groups 	= get_field( 'disable_manage_classes', 'option');
+
+		if( isset($_GET['lm_group_id'], $_GET['lm_action']) 
+			&& !empty($_GET['lm_group_id']) 
+			&& $_GET['lm_action'] == 'edit' 
+			&& in_array($_GET['lm_group_id'], $excluded_groups)
+		) {
 
 			$this->getGroupEditPages( $user );
 			return;
 		}
 
 		$user_admin_groups  = learndash_get_administrators_group_ids( $user->ID );
-		
 		$user_group_ids     = learndash_get_users_group_ids( $user->ID );
         $user_group_ids     = !empty($user_admin_groups) ? array_merge($user_admin_groups, $user_group_ids) : $user_group_ids;
 
@@ -230,6 +245,10 @@ class Life_Mastery_Group_Management_Public {
 
         $common_group_ids = array_unique($common_group_ids);
         $common_group_ids = array_reverse( $common_group_ids );
+
+        if( !empty($common_group_ids) && !empty( $excluded_groups ) ) {
+        	$common_group_ids = array_diff( $common_group_ids, $excluded_groups );
+        }
 
         if( !empty( $common_group_ids ) ) {
 
@@ -1249,5 +1268,47 @@ class Life_Mastery_Group_Management_Public {
         echo $output;
 
         wp_die();
+	}
+
+
+	public function load_week_facilitator_instructions() {
+
+		
+		$group_id 	=  $_POST['group_id'];
+		$week_id 	= $_POST['week_id'];
+
+
+		$defult_instructions 	= get_field( "default_facilitator_instructions", "option" );
+		$content 				= '';
+
+		$group_data = get_post_meta( $group_id, 'lm_group_data', true );
+
+		if( strpos( $week_id, 'week_' ) !== false ) {
+			$week = explode('week_', $week_id);
+			$week_num = $week[1];
+			if( $week_num || $week_num == 0 ) {
+				$week_content 	= get_field( "instructions_week_" . $week_num, "option" );
+			}
+		} else if( $week_id == 'teck_check' ) {
+			$week_content 	= get_field( "tech_check_instructions", "option" );
+		} else {
+			$week_content 	= '';
+		}
+
+		if( empty($week_content) ) {
+			$week_content = $defult_instructions;
+		}
+		$content 		.= $week_content;
+
+		if( strpos($content, 'resp-container') === false ) {
+			$content 			= str_replace(['<iframe', '</iframe>'], ['<div class="resp-container"><iframe', '</iframe></div>'], $content);
+		}
+
+		
+		$output 			= wpautop( $content );
+
+		echo $output;
+
+		wp_die();
 	}
 }

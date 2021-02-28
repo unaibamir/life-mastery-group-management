@@ -627,8 +627,8 @@ acf_add_local_field_group(array(
 	'menu_order' => 0,
 	'position' => 'normal',
 	'style' => 'default',
-	'label_placement' => 'top',
-	'instruction_placement' => 'label',
+	'label_placement' => 'left',
+	'instruction_placement' => 'field',
 	'hide_on_screen' => '',
 	'active' => true,
 	'description' => '',
@@ -1195,6 +1195,55 @@ acf_add_local_field_group(array(
 	'style' => 'default',
 	'label_placement' => 'top',
 	'instruction_placement' => 'label',
+	'hide_on_screen' => '',
+	'active' => true,
+	'description' => '',
+));
+
+
+acf_add_local_field_group(array(
+	'key' => 'group_60247bf44b088',
+	'title' => 'Group Settings',
+	'fields' => array(
+		array(
+			'key' => 'field_60247c006442a',
+			'label' => 'Disable Manage Classes',
+			'name' => 'disable_manage_classes',
+			'type' => 'select',
+			'instructions' => 'The manage classes functionality would be disabled on the selected groups.',
+			'required' => 0,
+			'conditional_logic' => 0,
+			'wrapper' => array(
+				'width' => '',
+				'class' => '',
+				'id' => '',
+			),
+			'choices' => array(
+			),
+			'default_value' => array(
+			),
+			'allow_null' => 0,
+			'multiple' => 1,
+			'ui' => 1,
+			'ajax' => 0,
+			'return_format' => 'value',
+			'placeholder' => '',
+		),
+	),
+	'location' => array(
+		array(
+			array(
+				'param' => 'options_page',
+				'operator' => '==',
+				'value' => 'lm-groups-settings',
+			),
+		),
+	),
+	'menu_order' => 0,
+	'position' => 'normal',
+	'style' => 'default',
+	'label_placement' => 'left',
+	'instruction_placement' => 'field',
 	'hide_on_screen' => '',
 	'active' => true,
 	'description' => '',

@@ -258,7 +258,15 @@ class Life_Mastery_Group_Management_Admin {
 				'updated_message' => __("Settings Updated", 'acf'),
 			));
 
-
+			$child_3 = acf_add_options_sub_page(array(
+				'page_title'  => __('Group Settings'),
+				'menu_title'  => __('Group Settings'),
+				'parent_slug' => $parent['menu_slug'],
+				'menu_slug'   => 'lm-groups-settings',
+				'capability'    => 'manage_options',
+				'update_button' => __('Save Settings', 'acf'),
+				'updated_message' => __("Settings Updated", 'acf'),
+			));
 		}
 	}
 
@@ -275,13 +283,31 @@ class Life_Mastery_Group_Management_Admin {
 			$field['choices'][ $form['id'] ] = $form['title'];
 		}
 
-	    // flush/clear the saved value
-	    /*$field['value'] = null;
-
-	    // or, set it to whatever the default
-	    $field['value'] = $field['default_value'];*/
-
 	    return $field;
 	}
 
+	public function tuts_mcekit_editor_style( $url ) {
+
+		if ( !empty($url) )
+			$url .= ',';
+ 
+		// Retrieves the plugin directory URL and adds editor stylesheet
+		// Change the path here if using different directories
+		$url .= trailingslashit( plugin_dir_url( __FILE__ ) ) . '/css/editor-styles.css';
+
+		return $url;
+	}
+
+	public function populate_ld_groups_acf_select( $field ) {
+
+		$field['choices'] = array();
+		
+		$groups = learndash_get_groups();
+
+		foreach ($groups as $group) {
+			$field['choices'][ $group->ID ] = $group->post_title;
+		}
+
+	    return $field;
+	}
 }

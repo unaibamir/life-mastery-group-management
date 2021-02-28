@@ -38,6 +38,25 @@
         active: 5
     });
 
+    $(document).on('change', ".week_facilitator_instructions", function( event ){
+    	var $week_id = $(this).val();
+    	var $group_id = $(this).attr('data-group_id');
+
+    	var data = {
+			'action': 'lm_load_week_facilitator_instructions',
+			'week_id': $week_id,
+			'group_id': $group_id
+		};
+
+		var $target = $(this).parents('table').find('.load-student-form-wrapper').find('.load-week-facilitator-instructions');
+		$target.html('Loading ...');
+
+		jQuery.post(ajaxurl, data, function(response) {
+			$target.html( response );
+		});
+    });
+
+
     $(document).on('change', ".student_view_form", function( event ){
     	var $student_id = $(this).val();
     	var $group_id = $(this).attr('data-group_id');

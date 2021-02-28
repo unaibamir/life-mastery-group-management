@@ -493,6 +493,7 @@ class LM_Helper {
 				}
 
 				if( !empty($group_data) && learndash_is_group_leader_user( $user ) || current_user_can( 'manage_options' ) ) {
+					
 					$week_num = $next_week = '';
 					
 					foreach ($group_data['lesson_review_dates'] as $key => $lesson_date ) {
@@ -714,6 +715,10 @@ class LM_Helper {
 			}
 
 		}
+
+		if( strpos($content, 'resp-container') === false ) {
+			$content 			= str_replace(['<iframe', '</iframe>'], ['<div class="resp-container"><iframe', '</iframe></div>'], $content);
+		}
 		
 		$output 			= wpautop( $content );
 
@@ -772,6 +777,10 @@ class LM_Helper {
 			}
 		}
 
+		if( strpos($content, 'resp-container') === false ) {
+			$content 			= str_replace(['<iframe', '</iframe>'], ['<div class="resp-container"><iframe', '</iframe></div>'], $content);
+		}
+
 		$output 			= wpautop( $content );
 		return $output;
 
@@ -828,6 +837,10 @@ class LM_Helper {
 			}
 		}
 
+		if( strpos($content, 'resp-container') === false ) {
+			$content 			= str_replace(['<iframe', '</iframe>'], ['<div class="resp-container"><iframe', '</iframe></div>'], $content);
+		}
+
 		$output 			= wpautop( $content );
 		return $output;
 	}
@@ -837,7 +850,7 @@ class LM_Helper {
 		$user_id 				= get_current_user_id();
 		$user_lesson_data 		= get_user_meta( $user_id, "lm_lesson_group_{$group_id}_info", true );	
 		//$week_content 			= get_field( "questions_week_" . $user_lesson_week_num, "option" );
-		$lead_instructions 		= get_field( "lead_instructions" , "option" );
+		
 		$defult_instructions 	= get_field( "default_facilitator_instructions", "option" );
 		$content 				= '';
 		
@@ -846,6 +859,49 @@ class LM_Helper {
 		$content 				.= '<br>';*/
 
 		$group_data = get_post_meta( $group_id, 'lm_group_data', true );
+		
+		$weeks = array(
+			'teck_check'	=>	__('Tech Check'),
+			'week_0'		=>	__('Week 0'),
+		);
+		for ($i = 0; $i < 13; $i++) {
+			$weeks[ 'week_' . $i ] = 'Week ' . $i;
+		}
+
+		if( current_user_can( 'manage_options' ) ) {
+			ob_start();
+			?>
+			<form action="<?php echo admin_url( 'admin-ajax.php' ) ?>" id="signup_form" class="standard-form base" method="POST" autocomplete="off">
+				<table class="profile-fields attendance-form student-form-details">
+					<tbody>
+						<tr>
+							<th><label for="week_facilitator_instructions"><strong>Select Week</strong></label></th>
+							<td>
+								<select name="week_facilitator_instructions" id="week_facilitator_instructions" class="week_facilitator_instructions lm-user-select" data-group_id="<?php echo $group_id; ?>">
+									<option value="">Please Select</option>
+									<?php
+									foreach ($weeks as $week_key => $week_label) {
+										echo '<option value="'.$week_key.'">'.$week_label.'</option>';
+									}
+									?>
+								</select>
+								<p class="description">Please select week to view facilitator instructions of the selected week</p>
+							</td>
+						</tr>
+						<tr class="load-student-form-wrapper">
+							<td colspan="2">
+								<div class="load-week-facilitator-instructions"></div>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</form>
+			<?php
+			$output = ob_get_contents();
+	        ob_end_clean();
+	        $output = wpautop( $output );
+	        return $output;
+		}
 		
 		if( !empty($group_data) && isset($group_data['lesson_review_dates']) && !empty( $group_data['lesson_review_dates'] ) ) {
 			$date 				= 'now';
@@ -857,10 +913,6 @@ class LM_Helper {
 				$week_num = $_GET["week"];
 			} else {
 				foreach ($group_data['lesson_review_dates'] as $key => $lesson_date ) {
-					
-					if( $key == 0 ) {
-						//continue;
-					}
 
 					$lesson_date 		= new DateTime( date('Y-m-d 23:59:59', strtotime($lesson_date)), new DateTimeZone( "America/Los_Angeles" ) );
 					$date_interval 		= $current_date->diff( $lesson_date );
@@ -875,6 +927,9 @@ class LM_Helper {
 			
 			if( $week_num || $week_num == 0 ) {
 				$week_content 	= get_field( "instructions_week_" . $week_num, "option" );
+				if( empty($week_content) ) {
+					$week_content = $defult_instructions;
+				}
 				$content 		.= $week_content;
 			}
 
@@ -882,8 +937,46 @@ class LM_Helper {
 				$week_content 	= get_field( "tech_check_instructions", "option" );
 				$content 		.= $week_content;
 			}
+
+			ob_start();
+			?>
+			<form action="<?php echo admin_url( 'admin-ajax.php' ) ?>" id="signup_form" class="standard-form base" method="POST" autocomplete="off">
+				<table class="profile-fields attendance-form student-form-details">
+					<tbody>
+						<tr>
+							<th><label for="week_facilitator_instructions"><strong>Select Week</strong></label></th>
+							<td>
+								<select name="week_facilitator_instructions" id="week_facilitator_instructions" class="week_facilitator_instructions lm-user-select" data-group_id="<?php echo $group_id; ?>">
+									<option value="">Please Select</option>
+									<?php
+									foreach ($weeks as $week_key => $week_label) {
+										$selected = strpos($week_key, $week_num) !== false ? 'selected' : '';
+										echo '<option  value="'.$week_key.'" '.$selected.' >'.$week_label.'</option>';
+									}
+									?>
+								</select>
+								<p class="description">Please select week to view facilitator instructions of the selected week</p>
+							</td>
+						</tr>
+						<tr class="load-student-form-wrapper">
+							<td colspan="2">
+								<div class="load-week-facilitator-instructions"><?php echo $content; ?></div>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</form>
+			<?php
+			$output = ob_get_contents();
+	        ob_end_clean();
+	        $content = wpautop( $output );
 		}
 
+		if( strpos($content, 'resp-container') === false ) {
+			$content 			= str_replace(['<iframe', '</iframe>'], ['<div class="resp-container"><iframe', '</iframe></div>'], $content);
+		}
+
+		
 		$output 			= wpautop( $content );
 		return $output;
 	}

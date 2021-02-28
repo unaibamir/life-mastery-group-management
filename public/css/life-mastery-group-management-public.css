@@ -166,3 +166,20 @@ div#buddypress .lm-group-manage-content table thead tr th {
     -webkit-box-shadow: inset 0 0 1000px rgba(0,0,0,.05);
     box-shadow: inset 0 0 1000px rgba(0,0,0,.05);
 }
+
+.resp-container {
+    position: relative;
+    overflow: hidden;
+    padding-top: 56.25%;
+}
+.resp-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+.user-groups-area h5.widgettitle.group-title + .ui-accordion-content .ui-tabs-panel p:empty {
+    display: none;
+}

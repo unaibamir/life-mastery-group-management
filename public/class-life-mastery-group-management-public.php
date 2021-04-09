@@ -1311,4 +1311,42 @@ class Life_Mastery_Group_Management_Public {
 
 		wp_die();
 	}
+
+	public function lm_group_meeting_shortcode_callback() {
+		
+		if( !is_user_logged_in() ) {
+			return;
+		}
+
+		if( !isset($_GET['lm_group_id'], $_GET['lm_meeting_id']) ) {
+			return;
+		}
+
+		if( empty($_GET['lm_group_id']) || empty($_GET['lm_meeting_id']) ) {
+			return;
+		}
+
+		$user 				= wp_get_current_user();
+		$group_id 			= $_GET['lm_group_id'];
+		$zoom_meeting_id 	= $_GET['lm_meeting_id'];
+
+		if( !is_admin() || !learndash_is_group_leader_user( $user ) || !learndash_is_user_in_group( $user->ID, $group_id ) ) {
+			//return;
+		}
+
+		
+		$meeting_data 		= !empty($zoom_meeting_id) ? json_decode( zoom_conference()->getMeetingInfo( $zoom_meeting_id ) ) : false;
+		if( !empty($meeting_data->code) ) {
+			return;
+		}
+
+		ob_start();
+		
+		echo do_shortcode( '[zoom_api_link meeting_id="'.$zoom_meeting_id.'"]' );
+
+		$output = ob_get_contents();
+        ob_end_clean();
+        return $output;
+		
+	}
 }

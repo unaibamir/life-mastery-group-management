@@ -1,4 +1,7 @@
 <?php
+require ZOOM_VIDEO_CONFERENCE_PLUGIN_DIR_PATH . '/vendor/autoload.php';
+
+use \Firebase\JWT\JWT;
 
 /**
  * The admin-specific functionality of the plugin.
@@ -40,6 +43,12 @@ class Life_Mastery_Group_Management_Admin {
 	 */
 	private $version;
 
+	public $zoom_api_key;
+
+	public $zoom_api_secret;
+
+	private $api_url = 'https://api.zoom.us/v2/';
+
 	/**
 	 * Initialize the class and set its properties.
 	 *
@@ -51,7 +60,12 @@ class Life_Mastery_Group_Management_Admin {
 
 		$this->plugin_name = $plugin_name;
 		$this->version = $version;
+		$this->setup_vars();
+	}
 
+	private function setup_vars() {
+		$this->zoom_api_key    = esc_html( get_option( 'zoom_api_key' ) );
+		$this->zoom_api_secret = esc_html( get_option( 'zoom_api_secret' ) );
 	}
 
 	/**
@@ -75,6 +89,15 @@ class Life_Mastery_Group_Management_Admin {
 
 		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/life-mastery-group-management-admin.css', array(), $this->version, 'all' );
 
+
+		if ( ! wp_style_is( 'video-conferencing-with-zoom-api-iframe' ) ) {
+			wp_enqueue_style( 'video-conferencing-with-zoom-api-iframe' );
+
+			if ( is_rtl() ) {
+				wp_add_inline_style( 'video-conferencing-with-zoom-api-iframe', 'body ul.zoom-meeting-countdown{ direction: ltr; }' );
+			}
+		}
+
 	}
 
 	/**
@@ -95,6 +118,11 @@ class Life_Mastery_Group_Management_Admin {
 		 * between the defined hooks and the functions defined in this
 		 * class.
 		 */
+
+		if ( ! wp_style_is( 'wplms-style' ) && ! wp_script_is( 'bootstrap' ) && ! wp_script_is( 'bootstrap-modal' ) ) {
+			wp_register_script( 'video-conferencing-with-zoom-api-modal', ZOOM_VIDEO_CONFERENCE_PLUGIN_FRONTEND_JS_PATH . '/bootstrap-modal.min.js', array( 'jquery' ), ZVCW_ZOOM_PLUGIN_VER, true );
+			wp_enqueue_script( 'video-conferencing-with-zoom-api-modal' );
+		}
 
 		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/life-mastery-group-management-admin.js', array( 'jquery' ), time(), false );
 
@@ -134,9 +162,9 @@ class Life_Mastery_Group_Management_Admin {
 			</tr>
 
 			<tr>
-				<th><label for="lm_group_tag"><?php echo __('Drip Course Lessons'); ?></label></th></th>
+				<th><label for="lm_drip_lessons"><?php echo __('Drip Course Lessons'); ?></label></th></th>
 				<td>
-					<input type="checkbox" name="lm_drip_lessons" value="yes">
+					<input type="checkbox" id="lm_drip_lessons" name="lm_drip_lessons" value="yes">
 					<p class="description">Automatically generate group course dates (based on date in the Infusionsoft tag) and drip dates for the course lessons (based on the generated dates).</p>
 					<p class="description">NOTE: Checking the box will reset any date changes made by the Group Leader!</p>
 				</td>
@@ -218,6 +246,331 @@ class Life_Mastery_Group_Management_Admin {
 
         update_post_meta( $group_id, 'lm_group_attendance_dates', $discuss_dates, '' );
 
+	}
+
+
+	public function add_zoom_meta_boxes() {
+		add_meta_box(
+            'lm-group-zoom-bos',
+            __( 'Zoom Settings', 'textdomain' ),
+            array( $this, 'render_zoom_metabox' ),
+            'groups',
+            'advanced',
+            'default'
+        );
+	}
+
+
+	public function render_zoom_metabox( $post ) {
+		global $wpdb;
+		$zoom_meeting_id 		= get_post_meta( $post->ID, 'lm_group_zoom_meeting_id', true );
+		$meeting_data 			= !empty($zoom_meeting_id) ? json_decode( zoom_conference()->getMeetingInfo( $zoom_meeting_id ) ) : false;
+		
+		?>
+		<table class="form-table">
+			<tr>
+				<th><label for="lm_group_zoom"><?php echo __('Create Group\'s Zoom Meeting'); ?></label></th></th>
+				<td>
+					<input type="checkbox" id="lm_group_zoom" name="lm_group_zoom" value="yes" <?php echo empty($meeting_data->code) ? 'disabled' : ''; ?>>
+					<p class="description">Automatically generate group's zoom meeting. </p>
+				</td>
+			</tr>
+
+			<?php if( empty($meeting_data->code) ): ?>
+				<?php
+				$meeting_edit = add_query_arg(array(
+					'page'		=>	'zoom-video-conferencing-add-meeting',
+					'edit'		=>	$meeting_data->id,
+					'host_id'	=>	$meeting_data->host_id
+				), admin_url( 'admin.php' ));
+				?>
+				<tr>
+					<th>Zoom Meeting</th>
+					<td>
+						<a href="<?php echo $meeting_edit; ?>">
+							<?php echo $meeting_data->topic; ?>
+						</a>
+					</td>
+				</tr>
+			<?php endif; ?>
+		</table>
+		<?php
+		
+	}
+
+	public function ld_group_save_zoom( $post_id, $post, $update ) {
+		global $wpdb;
+
+		$group_id = $post_id;
+
+		// Only set for post_type = post!
+	    if ( 'groups' !== $post->post_type ) {
+	        return;
+	    }
+
+	    if ( wp_is_post_revision( $group_id ) ) {
+        	return;
+        }
+
+        if( !isset($_POST['lm_group_zoom']) ) {
+        	return;
+        }
+
+        $group_data 		= get_post_meta( $group_id, 'lm_group_data', true );
+        $group_title 		= get_the_title( $group_id );
+        $meeting_topic 		= $group_title . " Meeting";
+        $group_edit_link 	= get_edit_post_link( $group_id );
+        $group_admins 		= learndash_get_groups_administrators( $group_id );
+        $host_admin 		= get_field('zoom_meeting_host', 'option');
+        $zoom_users 		= video_conferencing_zoom_get_possible_hosts();
+        $zoom_host 			= isset($host_admin) ? $zoom_users[$host_admin->ID] : false ;
+        $zoom_meeting_id 	= get_post_meta( $group_id, 'lm_group_zoom_meeting_id', true );
+
+        $meeting_data 		= !empty($zoom_meeting_id) ? json_decode( zoom_conference()->getMeetingInfo( $zoom_meeting_id ) ) : false;
+        if( empty($meeting_data->code) ) {
+        	return;
+        }
+        
+        if( !isset($zoom_host['host_id']) || isset($zoom_host['host_id']) && empty($zoom_host['host_id']) ) {
+        	$redirect_link = add_query_arg( 'message', 'lm_no_zoom_host', $redirect_link );
+        	wp_safe_redirect( $redirect_link );
+			exit;
+        }
+
+        $timezone 			= "America/Phoenix";
+        $group_data  		= get_post_meta( $group_id, 'lm_group_data', true );
+
+        if( empty($group_data) || !isset($group_data['lesson_review_dates']) || empty($group_data['lesson_review_dates'][0]) ) {
+        	return;
+        }
+
+        //$group_start_date  	= get_post_meta( $group_id, 'lm_course_start_date', true );
+        $group_start_date	= $group_data['lesson_review_dates'][0];
+        $group_end_date		= $group_data['lesson_review_dates'][13];
+		$meeting_time 		= get_option( 'options_zoom_meeting_time', '00:00:00' );
+
+		$date           	= new DateTime( $group_start_date .' '.$meeting_time, new DateTimeZone( $timezone ) );
+		$date->setTimezone( new DateTimeZone( 'UTC' ) );
+		$start_time 		= $date->format( 'Y-m-d\TH:i:s\Z' );
+
+		$end_date           = new DateTime( $group_end_date.' '.$meeting_time, new DateTimeZone( $timezone ) );
+		$end_date->setTimezone( new DateTimeZone( 'UTC' ) );
+		$end_date 			= $end_date->format( 'Y-m-d\TH:i:s\Z' );
+        
+        $zoom_meeting_args 	= array(
+        	'timezone'		=>	$timezone,
+        	'start_time'	=>	$start_time,
+        	'duration'		=>	120,
+        	'agenda'		=>	'',
+        	'topic'			=>	$meeting_topic,
+        	'type'			=>	8,
+        	'password'		=>	$group_id,
+        	'settings'		=>	array(
+				'meeting_authentication'	=>	false,
+				'waiting_room'				=>	false,
+				'join_before_host'			=>	true,
+				'host_video'				=>	false,
+				'participant_video'			=>	true,
+				'mute_upon_entry'			=>	false,
+				'enforce_login'				=>	true,
+				'auto_recording'			=>	'cloud',
+				'alternative_hosts'			=>	'',
+			),
+			'recurrence'	=>	array(
+				'type'						=>	2,
+				//'repeat_interval'			=>	14,
+				'end_date_time'				=>	$end_date,
+				'weekly_days'				=>	5
+			)
+        );
+        
+        
+        $zoom_meeting_args 		= $zoom_meeting_args;
+        $zoom_meeting_request 	= 'users/' . $zoom_host['host_id'] . '/meetings';
+        //$zoom_meeting_args 		= apply_filters( 'zoom_wp_before_create_meeting', $zoom_meeting_args );
+
+        try {
+        	
+        	$meeting_created 		= json_decode( $this->sendRequest( $zoom_meeting_request, $zoom_meeting_args, 'POST' ) );
+        } catch ( Exception $e ) {
+			video_conferencing_zoom_log_error( $e->getMessage() );
+		}
+        
+        if ( ! empty( $meeting_created->code ) ) {
+        	video_conferencing_zoom_log_error( $meeting_created->message );
+        	delete_post_meta( $group_id, 'lm_group_zoom_meeting_id' );
+        
+		} else {
+			/**
+			 * Fires after meeting has been Created
+			 *
+			 * @since  2.0.1
+			 *
+			 * @param meeting_id , Host_id
+			 */
+			$meeting_time = '';
+			try {
+				if ( isset( $meeting_created->start_time ) ) {
+					$meeting_time = video_conferencing_zoom_convert_time_to_local( $meeting_created->start_time, $meeting_created->timezone );
+				}
+
+				if ( isset( $meeting_created->id ) ) {
+
+					update_user_meta( $host_admin->ID, 'zoom_meeting_id_' . (float) $meeting_created->id, $meeting_created->host_id );
+
+					update_post_meta( $group_id, 'lm_group_zoom_meeting_id', $meeting_created->id );
+
+					video_conferencing_zoom_update_meetings_list( $meeting_created );
+
+					do_action( 'zoom_wp_after_create_meeting', $meeting_created, $meeting_time );
+
+					$this->check_sync_meeting();
+					
+				}
+			} catch ( Exception $e ) {
+				video_conferencing_zoom_log_error( $e->getMessage() );
+				delete_post_meta( $group_id, 'lm_group_zoom_meeting_id' );
+			}
+
+		}
+
+	}
+	
+	//function to generate JWT
+	public function generateJWTKey() {
+
+		$key    = $this->zoom_api_key;
+		$secret = $this->zoom_api_secret;
+
+		$token = array(
+			'iat' => time(),
+			'aud' => null,
+			'iss' => $key,
+			'exp' => time() + strtotime( '+60 minutes' ),
+		);
+		
+		return JWT::encode( $token, $secret );
+	}
+
+	protected function sendRequest( $calledFunction, $data, $request = 'GET', $log = true ) {
+		$request_url = $this->api_url . $calledFunction;
+		$args        = array(
+			'headers' => array(
+				'Authorization' => 'Bearer ' . $this->generateJWTKey(),
+				'Content-Type'  => 'application/json',
+			),
+			'timeout' => 60,
+		);
+
+		try {
+			set_time_limit( 0 );
+			$response = new stdClass();
+			$response = $this->makeRequest( $request_url, $args, $data, $request, $log );
+			// check if response contains multiple pages
+			if ( $this->data_list && isset( $response->{$this->return_object} ) ) {
+				$response->{$this->return_object} = $this->data_list;
+			}
+			$response = json_encode( $response );
+		} catch ( Exception $e ) {
+			video_conferencing_zoom_log_error( $e->getMessage() );
+		}
+
+		return $response;
+	}
+
+	// Send API request to Zoom
+	public function makeRequest( $request_url, $args, $data, $request = 'GET', $log = true ) {
+		if ( 'GET' == $request ) {
+			$args['body'] = ! empty( $data ) ? $data : array();
+			$response     = wp_remote_get( $request_url, $args );
+		} elseif ( 'DELETE' == $request ) {
+			$args['body']   = ! empty( $data ) ? json_encode( $data ) : array();
+			$args['method'] = 'DELETE';
+			$response       = wp_remote_request( $request_url, $args );
+		} elseif ( 'PATCH' == $request ) {
+			$args['body']   = ! empty( $data ) ? json_encode( $data ) : array();
+			$args['method'] = 'PATCH';
+			$response       = wp_remote_request( $request_url, $args );
+		} elseif ( 'PUT' == $request ) {
+			$args['body']   = ! empty( $data ) ? json_encode( $data ) : array();
+			$args['method'] = 'PUT';
+			$response       = wp_remote_post( $request_url, $args );
+		} else {
+			$args['body']   = ! empty( $data ) ? json_encode( $data ) : array();
+			$args['method'] = 'POST';
+			$response       = wp_remote_post( $request_url, $args );
+		}
+
+		if ( is_wp_error( $response ) ) {
+			video_conferencing_zoom_log_error( $response->get_error_message() );
+			return false;
+		}
+
+		$response = wp_remote_retrieve_body( $response );
+
+		if ( ! $response || '' == $response ) {
+			return false;
+		}
+
+		$check_response = new stdClass();
+		$check_response = json_decode( $response );
+		if ( isset( $check_response->code ) || isset( $check_response->error ) ) {
+			if ( $log ) {
+				video_conferencing_zoom_log_error( $check_response->message );
+			}
+		}
+
+		// Fetch the next page of the request
+		if ( isset( $check_response->next_page_token )
+			&& $check_response->next_page_token
+			&& $this->return_object
+		) {
+			$data['next_page_token'] = $check_response->next_page_token;
+
+			// If data received then fetch other pages too
+			if ( $check_response->{$this->return_object} ) {
+				$this->data_list = array_merge( $this->data_list, $check_response->{$this->return_object} );
+			}
+
+			return $this->makeRequest( $request_url, $args, $data, $request, $log );
+		} elseif ( $this->data_list ) {
+			// Get last page data in a multi request mode
+			$this->data_list = array_merge( $this->data_list, $check_response->{$this->return_object} );
+		}
+
+		return $check_response;
+	}
+
+	
+
+
+	/**
+	 * Sync Meetings List
+	 *
+	 * @since   4.7.2
+	 * @changes in CodeBase
+	 * @author  Adeel
+	 */
+	public static function check_sync_meeting() {		
+		global $wpdb;
+
+		$results = $wpdb->get_results(
+			"SELECT post_id, meta_key, meta_value FROM {$wpdb->prefix}postmeta WHERE meta_key = 'zoom_api_meeting_options' OR meta_key = 'zoom_api_webinar_options'",
+			ARRAY_A
+		);
+
+		$host_admin 		= get_field('zoom_meeting_host', 'option');
+        $zoom_users 		= video_conferencing_zoom_get_possible_hosts();
+        $zoom_host 			= isset($host_admin) ? $zoom_users[$host_admin->ID] : false ;
+
+		// Clear Meetings Listing
+		$meetings = video_conferencing_zoom_api_get_meeting_list( $zoom_host['host_id'], true );
+
+		// Clear Meeting and Webinar cached post meta values
+		foreach ( $results as $result ) {
+			$result['meta_value'] = unserialize( $result['meta_value'] );
+			video_conferencing_zoom_unset_wp_cache( $result['post_id'], $result['meta_key'], $result['meta_value'] );
+		}
 	}
 
 

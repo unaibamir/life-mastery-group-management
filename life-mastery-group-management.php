@@ -89,6 +89,12 @@ function wpnp_lm_acf_settings_show_admin( $show_admin ) {
     return false;
 }
 
+$zoom_plugin_file = plugin_dir_path(dirname(__FILE__)).'wp-zoom-addon/wp-zoom-addon.php';
+if( file_exists($zoom_plugin_file) ) {
+    require_once plugin_dir_path(dirname(__FILE__)).'/wp-zoom-addon/wp-zoom-addon.php';
+    Video_Conferencing_With_Zoom::instance();
+}
+
 /**
  * 
  The code that runs during plugin activation.

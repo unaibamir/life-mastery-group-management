@@ -629,12 +629,18 @@ class LM_Helper {
 
 	public static function get_group_zoom_info( $group_id )
 	{
-		$zoom_info = get_post_meta( $group_id, 'lm_group_zoom_info', true );
-		if( !empty($zoom_info) ) {
-			$zoom_info = wpautop( $zoom_info );
-		} else {
-			$zoom_info = __( 'No data available' );
-		}
+		$zoom_meeting_id 		= get_post_meta( $group_id, 'lm_group_zoom_meeting_id', true );
+		
+		$zoom_meeting_page_id 	= get_field('zoom_meeting_page', 'option');
+		$zoom_meeting_page 		= add_query_arg(
+			array(
+				'lm_group_id'	=>	$group_id,
+				'lm_meeting_id'	=>	$zoom_meeting_id,
+			),
+			get_permalink( $zoom_meeting_page_id )
+		);
+
+		$zoom_info = 'Please <a href="'.$zoom_meeting_page.'" target="_blank">click</a> here for your zoom meeting.';
 		
 		return $zoom_info;
 	}

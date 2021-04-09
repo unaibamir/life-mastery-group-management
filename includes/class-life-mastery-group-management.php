@@ -168,6 +168,9 @@ class Life_Mastery_Group_Management {
 		$this->loader->add_filter( 'mce_css', $plugin_admin, 'tuts_mcekit_editor_style', 10, 1);
 		$this->loader->add_filter( 'acf/prepare_field/name=disable_manage_classes', $plugin_admin, 'populate_ld_groups_acf_select', 10, 3 );
 
+		$this->loader->add_action( 'add_meta_boxes', $plugin_admin, 'add_zoom_meta_boxes' );
+		$this->loader->add_action( 'save_post', $plugin_admin, 'ld_group_save_zoom', 999, 3 );
+
 	}
 
 	/**
@@ -201,6 +204,8 @@ class Life_Mastery_Group_Management {
 		$this->loader->add_action( 'wp_ajax_lm_load_student_form_details', $plugin_public, 'load_student_form_details' );
 
 		$this->loader->add_action( 'wp_ajax_lm_load_week_facilitator_instructions', $plugin_public, 'load_week_facilitator_instructions' );
+
+		add_shortcode( 'lm_group_meeting', array( $plugin_public, 'lm_group_meeting_shortcode_callback' ) );
 
 	}
 

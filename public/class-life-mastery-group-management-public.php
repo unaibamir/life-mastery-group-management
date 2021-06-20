@@ -116,7 +116,7 @@ class Life_Mastery_Group_Management_Public {
 		}
 		
 
-		$dependecy = array( 'jquery', 'jquery-ui-datepicker', 'lm-select2' );
+		$dependecy = array( 'jquery', 'jquery-ui-datepicker', 'lm-select2', 'jquery-fancybox' );
 		wp_enqueue_script( 'jquery-ui-datepicker' );
 		wp_enqueue_script( 'jquery-ui-tabs' );
 		wp_enqueue_script( 'lm-select2', plugin_dir_url( __FILE__ ) . 'js/select2.min.js', array(), $this->version, true );
@@ -1342,7 +1342,9 @@ class Life_Mastery_Group_Management_Public {
 
 		ob_start();
 		
-		echo do_shortcode( '[zoom_api_link meeting_id="'.$zoom_meeting_id.'"]' );
+		echo do_shortcode( '[zoom_api_link meeting_id="'.$zoom_meeting_id.'" hide_join_before_time="1"]' );
+
+		echo do_shortcode( '[lm_meeting_recordings meeting_id="'.$zoom_meeting_id.'"]' );
 
 		$output = ob_get_contents();
         ob_end_clean();

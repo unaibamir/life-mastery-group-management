@@ -183,3 +183,7 @@ div#buddypress .lm-group-manage-content table thead tr th {
 .user-groups-area h5.widgettitle.group-title + .ui-accordion-content .ui-tabs-panel p:empty {
     display: none;
 }
+
+.lm-zoom-recording .dgv-embed-container .fluid-width-video-wrapper {
+    padding-top: 56.278% !important;
+}

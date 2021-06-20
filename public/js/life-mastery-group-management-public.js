@@ -75,6 +75,18 @@
 		});
     });
 
+    $(".various").fancybox({
+		maxWidth	: 800,
+		maxHeight	: 600,
+		fitToView	: false,
+		width		: '70%',
+		height		: '70%',
+		autoSize	: false,
+		closeClick	: false,
+		openEffect	: 'none',
+		closeEffect	: 'none'
+	});
+
 	/*$lesson_select.on("select2:select", function (e) {
 
 		var vals = $(this).select2("val");

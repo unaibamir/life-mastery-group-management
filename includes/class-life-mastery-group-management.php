@@ -171,6 +171,16 @@ class Life_Mastery_Group_Management {
 		$this->loader->add_action( 'add_meta_boxes', $plugin_admin, 'add_zoom_meta_boxes' );
 		$this->loader->add_action( 'save_post', $plugin_admin, 'ld_group_save_zoom', 999, 3 );
 
+		$this->loader->add_action( 'init', $plugin_admin, 'remove_zoom_plugin_cron_job', 99 );
+
+		$this->loader->add_action( 'init', $plugin_admin, 'modify_zoom_vimeo_hooks' );
+
+		$this->loader->add_filter( 'option_zoom_recording_via', $plugin_admin, 'modify_zoom_recording_via_option', 9, 2 );
+
+		add_shortcode( 'lm_meeting_recordings', array( $plugin_admin, 'lm_meeting_recordings_shortcode_callback' ) );
+
+
+
 	}
 
 	/**

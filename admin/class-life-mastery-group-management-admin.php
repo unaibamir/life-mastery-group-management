@@ -664,6 +664,14 @@ class Life_Mastery_Group_Management_Admin {
 	    return $field;
 	}
 
+	public function lm_create_custom_cron_schedules( $schedules ) {
+		 $schedules['sixhours'] = array(
+	        'interval' => 21600, // Every 6 hours
+	        'display'  => __( 'Every 6 hours' ),
+	    );
+	    return $schedules;
+	}
+
 	public function remove_zoom_plugin_cron_job() {
 
 		wp_clear_scheduled_hook( 'zoom_wp_main_cron_sync_data_hook' );
@@ -834,12 +842,13 @@ class Life_Mastery_Group_Management_Admin {
 		$groups_meeting_ids 	= array();
 		$groups_zoom_meeting 	= array();
 		$groups_meeting_data 	= $wpdb->get_results("SELECT meta_value FROM {$wpdb->postmeta} WHERE meta_key = 'lm_group_zoom_meeting_id'");
-		
-		if( !empty($groups_meeting_data) ) {
+			
+		// removed this feature in favor of user's zoom account meeting uploads
+		/*if( !empty($groups_meeting_data) ) {
 			foreach ($groups_meeting_data as $group_meeting_data) {
 				$groups_meeting_ids[] = $group_meeting_data->meta_value;
 			}
-		}
+		}*/
 
 		array_push($groups_meeting_ids, 702375183);
 		
@@ -1190,84 +1199,7 @@ class Life_Mastery_Group_Management_Admin {
 	}
 
 
-	public function lm_meeting_recordings_shortcode_callback( $atts, $content ) {
-		$args = shortcode_atts(
-			array(
-				'meeting_id' => '',
-				'is_webinar' => '',
-				'play_url'   => '',
-				'start_time' => '',
-				'end_time'   => '',
-			),
-			$atts
-		);
-
-		$args['zoom_not_show_recordings'] = get_option( 'zoom_hide_recordings' );
-		$args['zoom_window_size']         = get_option( 'zoom_window_size' );
-		$args['meeting_id']               = (float) str_replace( '-', '', str_replace( ' ', '', $args['meeting_id'] ) );
-		$args['is_only_recording']        = 1;
-		$args['is_meeting_view']          = 0;
-
-		if ( $args['is_webinar'] ) {
-			$args['option'] = 'zoom_api_webinar_options';
-		} else {
-			$args['option'] = 'zoom_api_meeting_options';
-		}
-
-		if ( $args['meeting_id'] ) {
-			$args['zoom_map_array'] = get_post_meta( $args['meeting_id'], $args['option'], true );
-			if ( ! $args['zoom_map_array'] ) {
-				$args['zoom_map_array'] = array();
-			}
-		}
-
-		$past_recordings 	= $args['zoom_map_array']['past_recordings'];
-		$meeging_id 		= $args['meeting_id'];
-		$meeting_title 		= $args['zoom_map_array']['topic'];
-
-		//add_thickbox();
-
-		ob_start();
-		
-		if( !empty( $past_recordings ) ) {
-			?>
-			<ul>
-			<?php
-			foreach ($past_recordings as $past_recording) {
-				$recording_date 	= $past_recording['recording_end'];
-				$recording_date 	= explode('T', $recording_date);
-				$recording_title 	= $meeting_title . ' - ' . $recording_date[0];
-				
-				?>
-				<li>
-					<div id="lm-zoom-recording-<?php echo $past_recording['vimeo_id']; ?>" style="display:none;" class="lm-zoom-recording">
-						<div class="recording-container">
-							<?php echo do_shortcode( '[dgv_vimeo_video id="' . esc_attr( $past_recording['vimeo_id'] ) . '"]' ); ?>
-						</div>
-						
-					</div>
-					<!-- <a href="#TB_inline?&width=800&height=450&inlineId=lm-zoom-recording-<?php echo $past_recording['vimeo_id']; ?>" class="thickbox">
-						<?php echo $recording_title; ?>
-					</a> <br> -->
-
-					<a href="#lm-zoom-recording-<?php echo $past_recording['vimeo_id']; ?>"  class="various">
-						<?php echo $recording_title; ?>
-					</a>
-
-				</li>
-				<?php
-			}
-			?>
-			</ul>
-			<?php
-		}
-
-
-		$output = ob_get_contents();
-        ob_end_clean();
-        return $output;
-		
-	}
+	
 
 	public function zoom_api_link_shortcode( $atts, $content = null ) {
 		if ( ! video_conferencing_zoom_is_valid_request() ) {
@@ -1356,5 +1288,47 @@ class Life_Mastery_Group_Management_Admin {
 		$display = ob_get_clean();
 
 		return $display;
+	}
+
+	public function get_group_meetings_recordings_old() {
+		global $wpdb;
+		
+		$groups_meeting_ids 	= array();
+		$groups_zoom_meeting 	= array();
+		$groups_meeting_data 	= $wpdb->get_results("SELECT meta_value FROM {$wpdb->postmeta} WHERE meta_key = 'lm_meeting_id'");
+		
+		if( !empty($groups_meeting_data) ) {
+			foreach ($groups_meeting_data as $group_meeting_data) {
+				$groups_meeting_ids[] = $group_meeting_data->meta_value;
+			}
+		}
+
+		// filter zoom recordings to only video ones. 
+		// we do not want audio files to be uploaded on Vimeo.
+		if( !empty($groups_zoom_meeting) ) {
+			foreach ( $groups_zoom_meeting as $meeting_id => $meeting_recordings ) {
+
+				foreach ( $meeting_recordings as $recording_key => $meeting_recording ) {
+					$recording_files = $meeting_recording->recording_files;
+
+					foreach ($recording_files as $file_key => $recording_file) {
+
+						if( $recording_file->recording_type != 'shared_screen_with_gallery_view' ) {
+							unset( $groups_zoom_meeting[ $meeting_id ][ $recording_key ]->recording_files[$file_key] );
+							continue;
+						}
+					}
+				}
+
+				/*foreach ($group_zoom_meeting->recording_files as $recording_key => $recording) {
+					if( $recording->recording_type != 'shared_screen_with_gallery_view' ) {
+						unset( $groups_zoom_meeting[$meeting_id][$recording_key]->recording_files[$recording_key] );
+						continue;
+					}
+				}*/
+			}
+		}
+		
+		return $groups_zoom_meeting;
 	}
 }

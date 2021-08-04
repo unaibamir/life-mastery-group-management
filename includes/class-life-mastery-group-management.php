@@ -168,8 +168,8 @@ class Life_Mastery_Group_Management {
 		$this->loader->add_filter( 'mce_css', $plugin_admin, 'tuts_mcekit_editor_style', 10, 1);
 		$this->loader->add_filter( 'acf/prepare_field/name=disable_manage_classes', $plugin_admin, 'populate_ld_groups_acf_select', 10, 3 );
 
-		$this->loader->add_action( 'add_meta_boxes', $plugin_admin, 'add_zoom_meta_boxes' );
-		$this->loader->add_action( 'save_post', $plugin_admin, 'ld_group_save_zoom', 999, 3 );
+		//$this->loader->add_action( 'add_meta_boxes', $plugin_admin, 'add_zoom_meta_boxes' );
+		//$this->loader->add_action( 'save_post', $plugin_admin, 'ld_group_save_zoom', 999, 3 );
 
 		$this->loader->add_action( 'init', $plugin_admin, 'remove_zoom_plugin_cron_job', 99 );
 
@@ -177,9 +177,7 @@ class Life_Mastery_Group_Management {
 
 		$this->loader->add_filter( 'option_zoom_recording_via', $plugin_admin, 'modify_zoom_recording_via_option', 9, 2 );
 
-		add_shortcode( 'lm_meeting_recordings', array( $plugin_admin, 'lm_meeting_recordings_shortcode_callback' ) );
-
-
+		$this->loader->add_filter( 'cron_schedules', $plugin_admin, 'lm_create_custom_cron_schedules' );
 
 	}
 
@@ -216,6 +214,16 @@ class Life_Mastery_Group_Management {
 		$this->loader->add_action( 'wp_ajax_lm_load_week_facilitator_instructions', $plugin_public, 'load_week_facilitator_instructions' );
 
 		add_shortcode( 'lm_group_meeting', array( $plugin_public, 'lm_group_meeting_shortcode_callback' ) );
+
+		add_shortcode( 'lm_meeting_recordings', array( $plugin_public, 'lm_meeting_recordings_shortcode_callback' ) );
+
+		$this->loader->add_action( 'bp_after_profile_field_content', $plugin_public, 'add_member_settings_field' );
+
+		$this->loader->add_action( 'xprofile_updated_profile', $plugin_public, 'save_member_settings_field' );
+
+		add_shortcode( 'lm_zoom_api_link', array( $plugin_public, 'lm_zoom_api_link_shortcode_callback' ) );
+
+		$this->loader->add_action( 'lm_zoom_wp_main_cron_sync_data_hook', $plugin_public, 'lm_zoom_main_cron_sync_user_meeting_data' );
 
 	}
 

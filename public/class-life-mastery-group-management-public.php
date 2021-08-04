@@ -125,7 +125,9 @@ class Life_Mastery_Group_Management_Public {
 	}
 
 	public function init() {
-		
+		if( isset($_GET["user_meetings"]) ) {
+			$this->get_upload_user_meetings();
+		}
 	}
 
 
@@ -739,6 +741,7 @@ class Life_Mastery_Group_Management_Public {
 		$group_id 		=  	isset($_GET['lm_group_id']) ? $_GET['lm_group_id'] : 0;
 
 		$group_zoom 	= 	get_post_meta( $group_id, 'lm_group_zoom_info', true );
+		$meeting_id 	= 	get_post_meta( $group_id, 'lm_meeting_id', true );
 		$settings = array(
 			'media_buttons'	=>	false,
 			'quicktags'		=>	false,
@@ -746,12 +749,27 @@ class Life_Mastery_Group_Management_Public {
 
 		);
 
+
+		
+		$recordings = lm_helper()->get_user_meeting_recordings( get_current_user_id(), $meeting_id );
+		//dd($recordings, false);
+
+		$groups = learndash_get_administrators_group_ids( get_current_user_id() );
+
+
 		?>
 		<form action="<?php echo admin_url( 'admin-ajax.php' ) ?>" class="standard-form base" method="POST" autocomplete="off">
 			<input type="hidden" name="action" value="lm_group_zoom_callback">
 
 			<!-- <textarea name="lm_group_zoom_info" id="message_content" cols="30" rows="30"><?php echo $group_zoom; ?></textarea> -->
 			<?php wp_editor( $group_zoom, 'lm_group_zoom_info', $settings ) ?>
+
+			<hr>
+
+			<label for="lm_zoom_meeting_id"><?php _e( 'Zoom Meeting ID', 'buddypress' ); ?></label>
+			<input type="text" name="lm_zoom_meeting_id" id="lm_zoom_meeting_id" value="<?php echo $meeting_id; ?>" class="settings-input" />
+
+			<hr>
 
 			<div class="submit">
 				<input type="submit" name="lm_group_attendance_save" id="lm_group_attendance_save" value="Save Changes ">
@@ -772,6 +790,8 @@ class Life_Mastery_Group_Management_Public {
 		}
 		
 		update_post_meta( $_POST['lm_group_id'], 'lm_group_zoom_info', $_POST['lm_group_zoom_info'], '' );
+
+		update_post_meta( $_POST['lm_group_id'], 'lm_meeting_id', sanitize_text_field( preg_replace('/\s+/', '', $_POST['lm_zoom_meeting_id'] ) ), '' );
 
 		$redirect_url = $_POST['_wp_http_referer'];
 		//$redirect_url = add_query_arg( array( 'lm-message' => 'saved', 'lm-status' => 'success' ), $redirect_url );
@@ -1334,15 +1354,15 @@ class Life_Mastery_Group_Management_Public {
 			//return;
 		}
 
-		
-		$meeting_data 		= !empty($zoom_meeting_id) ? json_decode( zoom_conference()->getMeetingInfo( $zoom_meeting_id ) ) : false;
+		$meeting_data 		= !empty($zoom_meeting_id) ? lm_helper()->get_user_meeting_info( $zoom_meeting_id ) : false;
+
 		if( !empty($meeting_data->code) ) {
 			return;
 		}
 
 		ob_start();
 		
-		echo do_shortcode( '[zoom_api_link meeting_id="'.$zoom_meeting_id.'" hide_join_before_time="1"]' );
+		echo do_shortcode( '[lm_zoom_api_link meeting_id="'.$zoom_meeting_id.'" hide_join_before_time="1"]' );
 
 		echo do_shortcode( '[lm_meeting_recordings meeting_id="'.$zoom_meeting_id.'"]' );
 
@@ -1350,5 +1370,374 @@ class Life_Mastery_Group_Management_Public {
         ob_end_clean();
         return $output;
 		
+	}
+
+	public function lm_meeting_recordings_shortcode_callback( $atts, $content ) {
+		$args = shortcode_atts(
+			array(
+				'meeting_id' => '',
+				'is_webinar' => '',
+				'play_url'   => '',
+				'start_time' => '',
+				'end_time'   => '',
+			),
+			$atts
+		);
+
+		$args['zoom_not_show_recordings'] = get_option( 'zoom_hide_recordings' );
+		$args['zoom_window_size']         = get_option( 'zoom_window_size' );
+		$args['meeting_id']               = (float) str_replace( '-', '', str_replace( ' ', '', $args['meeting_id'] ) );
+		$args['is_only_recording']        = 1;
+		$args['is_meeting_view']          = 0;
+
+		if ( $args['is_webinar'] ) {
+			$args['option'] = 'zoom_api_webinar_options';
+		} else {
+			$args['option'] = 'zoom_api_meeting_options';
+		}
+
+		if ( $args['meeting_id'] ) {
+			$args['zoom_map_array'] = get_post_meta( $args['meeting_id'], $args['option'], true );
+			if ( ! $args['zoom_map_array'] ) {
+				$args['zoom_map_array'] = array();
+			}
+		}
+
+		$past_recordings 	= $args['zoom_map_array']['past_recordings'];
+		$meeging_id 		= $args['meeting_id'];
+		$meeting_title 		= $args['zoom_map_array']['topic'];
+		$meeting_title 		= empty( $meeting_title ) ? get_the_title( $_GET["lm_group_id"] ) : $meeting_title;
+
+		//add_thickbox();
+
+		ob_start();
+		
+		if( !empty( $past_recordings ) ) {
+			?>
+			<ul>
+			<?php
+			foreach ($past_recordings as $past_recording) {
+				$recording_date 	= $past_recording['recording_end'];
+				$recording_date 	= explode('T', $recording_date);
+				$recording_title 	= $meeting_title . ' - ' . $recording_date[0];
+				
+				?>
+				<li>
+					<div id="lm-zoom-recording-<?php echo $past_recording['vimeo_id']; ?>" style="display:none;" class="lm-zoom-recording">
+						<div class="recording-container">
+							<?php echo do_shortcode( '[dgv_vimeo_video id="' . esc_attr( $past_recording['vimeo_id'] ) . '"]' ); ?>
+						</div>
+						
+					</div>
+					<!-- <a href="#TB_inline?&width=800&height=450&inlineId=lm-zoom-recording-<?php echo $past_recording['vimeo_id']; ?>" class="thickbox">
+						<?php echo $recording_title; ?>
+					</a> <br> -->
+
+					<a href="#lm-zoom-recording-<?php echo $past_recording['vimeo_id']; ?>"  class="various">
+						<?php echo $recording_title; ?>
+					</a>
+
+				</li>
+				<?php
+			}
+			?>
+			</ul>
+			<?php
+		}
+
+
+		$output = ob_get_contents();
+        ob_end_clean();
+        return $output;
+		
+	}
+
+	public function add_member_settings_field() {
+
+		if( bp_current_action() != 'edit' ) {
+            return;
+        }
+
+		$user_id 				= bp_displayed_user_id();
+		$lm_zoom_api_key 		= bp_get_user_meta( $user_id, 'lm_zoom_api_key', true );
+		$lm_zoom_api_secret_key = bp_get_user_meta( $user_id, 'lm_zoom_api_secret_key', true );
+		
+		?>
+
+		<div class="editfield required-field visibility-public field_type_textbox">
+            <fieldset>
+            	<legend>
+            		<label for="lm_zoom_api_key"><?php _e( 'Zoom API Key', 'buddypress' ); ?></label>
+            	</legend>
+            	<input type="text" name="lm_zoom_api_key" id="lm_zoom_api_key" value="<?php echo $lm_zoom_api_key; ?>" class="settings-input" />
+            </fieldset>
+
+            <fieldset>
+            	<legend>
+            		<label for="lm_zoom_api_secret_key"><?php _e( 'Zoom API Secret Key', 'buddypress' ); ?></label>
+            	</legend>
+            	<input type="text" name="lm_zoom_api_secret_key" id="lm_zoom_api_secret_key" value="<?php echo $lm_zoom_api_secret_key; ?>" class="settings-input" />
+            </fieldset>
+        </div>	
+		
+		<?php
+	}
+
+	public function save_member_settings_field() {
+		
+		$user_id = bp_displayed_user_id();
+
+		bp_update_user_meta( $user_id, 'lm_zoom_api_key', sanitize_text_field( preg_replace('/\s+/', '', $_POST["lm_zoom_api_key"] ) ) );
+		bp_update_user_meta( $user_id, 'lm_zoom_api_secret_key', sanitize_text_field( preg_replace('/\s+/', '', $_POST["lm_zoom_api_secret_key"] ) ) );
+
+		$feedback[]    = __( 'Your settings have been saved.', 'buddypress' );
+		$feedback_type = 'success';
+
+		bp_core_add_message( implode( "\n", $feedback ), $feedback_type );
+	}
+
+	public function get_upload_user_meetings() {
+
+		$users = get_users( array(
+			'meta_query'	=> array(
+				'relation'		=>	'AND',
+				array(
+					'key'		=>	'lm_zoom_api_key',
+				),
+				array(
+					'key'		=>	'lm_zoom_api_secret_key',
+				)
+			)
+		) );
+
+		$zoom_map_array = array();
+
+		if( !empty($users) ) {
+
+			foreach ($users as $user) {
+
+				$user_id 				= $user->ID;
+				$user_zoom_api_key 		= get_user_meta( $user_id, 'lm_zoom_api_key', true );
+				$user_zoom_api_secret_key = get_user_meta( $user_id, 'lm_zoom_api_secret_key', true );
+				
+				$user_groups 			= learndash_get_administrators_group_ids( get_current_user_id() );
+
+				// bail if we do not have user LD groups, zoom api key and zoom api secret key
+				if( empty( $user_groups ) && empty( $user_zoom_api_key ) && empty( $user_zoom_api_secret_key ) ) {
+					continue;
+				}
+
+				foreach( $user_groups as $group_key => $group_id ) {
+					
+					$meeting_id 		= 	get_post_meta( $group_id, 'lm_meeting_id', true );
+					
+					// bail if we do not have zoom meeting id for the group
+					if( empty( $meeting_id ) ) {
+						continue;
+					}
+
+					// lets get user's zoom meeting and recordings
+					$meeting_recordings = lm_helper()->get_user_meeting_recordings( $user_id, $meeting_id );
+
+					if( empty($meeting_recordings) ) {
+						continue;
+					}
+
+					// loop through available meeting recordinds and process futher
+					foreach( $meeting_recordings as $meeting_key => $meeting_recording ) {
+
+						$recordings = array();
+
+						if ( in_array( $meeting_recording->type, array( 5, 6, 9 ) ) ) {
+							$type = 'zoom_api_webinar_options';
+						} else {
+							$type = 'zoom_api_meeting_options';
+						}
+
+						$meeting_data = get_post_meta( $meeting_recording->id, $type, true ) ?: array();
+
+						// No record found for meeting or webinar in WP so skip it
+						if ( ! $zoom_map_array[ $meeting_recording->id ] ) {
+							//continue;
+						}
+
+						if( !isset($zoom_map_array[ $meeting_recording->id ]['past_recordings_all']) ) {
+							//$zoom_map_array[ $meeting_recording->id ]['past_recordings_all'] = array();
+						}
+
+						$zoom_map_array[ $meeting_recording->id ]['type'] = $type;
+						$zoom_map_array[ $meeting_recording->id ]['topic'] = $meeting_recording->topic;
+						$zoom_map_array[ $meeting_recording->id ]['host_id'] = $meeting_recording->host_id;
+						
+						$meeting_recording->recording_files = array_values($meeting_recording->recording_files);
+						
+						$this_recording = video_conferencing_recording_get_params_by_sequence( (array) $meeting_recording->recording_files, array() );
+						
+
+						// if we have only recording_url
+						if ( isset( $this_recording['recording_url'] ) && $this_recording['recording_url'] ) {
+
+							// Associate Vimeo ID if video exists
+							$recording_key = array_search( $this_recording['recording_id'], array_column( $meeting_data['past_recordings'], 'recording_id' ) );
+
+							if ( false !== $recording_key ) {
+								
+								$vimeo_record = $meeting_data['past_recordings'][ $recording_key ];
+								
+								if ( isset( $vimeo_record['vimeo_id'] ) ) {
+									$exist = video_conferencing_zoom_check_vimeo_exist( $vimeo_record['vimeo_id'] );
+
+									// Video deleted from Vimeo so remove from WP as well
+									if ( ! $exist ) {
+										$this_recording['vimeo_removed'] = 1;
+									} else {
+										$this_recording['vimeo_id'] = $vimeo_record['vimeo_id'];
+									}
+								}
+							}
+
+							//dd($this_recording, false);
+
+							$recording_date = $this_recording['recording_end'];
+							$recording_date = explode('T', $recording_date);
+
+							$this_recording = lm_helper()->upload_user_recording_to_vimeo( $this_recording, $meeting_recording->topic . ' - ' . $recording_date[0], false, true, $user_id);
+
+							$recording = $this_recording;
+							//dd($recording, false);
+
+							$zoom_map_array[ $meeting_recording->id ]['past_recordings_all'][] = $recording;
+							//array_push( $zoom_map_array[ $meeting_recording->id ]['past_recordings_all'], $recordings);
+							
+							
+						}
+
+					}
+
+					
+					// Update DB will all past recordings for a meeting
+					if ( $zoom_map_array ) {
+						foreach ( $zoom_map_array as $meeting_id => $options ) {
+							$type = $options['type'];
+							if ( isset( $options['past_recordings_all'] ) && $options['past_recordings_all'] ) {
+								$options['past_recordings'] = $options['past_recordings_all'];
+							}
+							if ( isset( $options['type'] ) ) {
+								unset( $options['type'] );
+							}
+							if ( isset( $options['past_recordings_all'] ) ) {
+								unset( $options['past_recordings_all'] );
+							}
+							update_post_meta( $meeting_id, $type, $options );
+						}
+					}
+
+				}  //end user groups foreach
+
+
+			} //end users foreach
+		}  //end users ifelse
+
+		exit;
+	}
+
+
+	public function lm_zoom_api_link_shortcode_callback( $atts, $content = null ) {
+
+		if ( ! video_conferencing_zoom_is_valid_request() ) {
+			return;
+		}
+		ob_start();
+
+		/* Forced redirect disabled in in v4.11.4
+		// Serve a non cached version of the shortcode page
+		if ( video_conferencing_zoom_redirect_nocache() ) {
+			wp_enqueue_script( 'video-conferencing-with-zoom-api-nocache' );
+		}
+		*/
+
+		// If styles fail to enqueue earlier then add them with the shortcode
+		if ( ! wp_style_is( 'video-conferencing-with-zoom-api-iframe' ) ) {
+			wp_enqueue_style( 'video-conferencing-with-zoom-api-iframe' );
+
+			if ( is_rtl() ) {
+				wp_add_inline_style( 'video-conferencing-with-zoom-api-iframe', 'body ul.zoom-meeting-countdown{ direction: ltr; }' );
+			}
+		}
+
+		$args = shortcode_atts(
+			array(
+				'meeting_id'             => '',
+				'is_webinar'             => '',
+				'title'                  => '',
+				'countdown_title'        => '',
+				'join_via_app'           => '',
+				'display_name'           => '',
+				'user_email'             => '',
+				'cloud_recording_button' => '',
+				'recording_url'          => '',
+				'display_back_btn'       => '',
+				'id'                     => 'zoom-meeting-window',
+				'class'                  => 'zoom-meeting-window',
+				'hide_form'              => 0,
+				'meeting_role'           => 0,
+				'show_countdown'         => 0,
+				'join_meeting'           => 0,
+				'auto_join'              => 0,
+				'is_meeting_view'        => 0,
+				'show_join_web'          => 0,
+				'show_join_app'          => 0,
+			),
+			$atts
+		);
+
+		$args['type_id'] = (float) str_replace( '-', '', str_replace( ' ', '', $args['meeting_id'] ) );
+
+		if ( ! $args['type_id'] ) {
+			$content = '<h4 class="no-meeting-id"><strong style="color:red;">' . __( 'ERROR: ', 'video-conferencing-with-zoom-api' ) . '</strong>' . __( 'Missing meeting or webinar id', 'video-conferencing-with-zoom-api' ) . '</h4>';
+			return;
+		}
+
+		$content = '<div class="zoom-window-wrap"><div style="display:none;" class="loader"></div>';
+
+		if ( $args['is_webinar'] ) {
+			$args['option'] = 'zoom_api_webinar_options';
+		} else {
+			$args['option'] = 'zoom_api_meeting_options';
+		}
+
+		$args['zoom_map_array'] = get_post_meta( $args['type_id'], $args['option'], true );
+		if ( ! $args['zoom_map_array'] ) {
+			$args['zoom_map_array'] = array();
+		}
+
+		$args = lm_helper()->video_conferencing_zoom_prepare_args( $args );
+
+		if ( isset( $args['zoom_map_array']['enforce_login'] ) && ! is_user_logged_in() ) {
+			$content .= video_conferencing_zoom_show_is_login();
+		} elseif ( video_conferencing_zoom_is_countdown( $args ) ) {
+			$content .= video_conferencing_zoom_show_countdown( $args );
+		} else {
+			$content .= video_conferencing_zoom_load_meeting( $args );
+		}
+
+		$content .= '</div>'; // Close zoom-window-wrap
+
+		// Allow addon devs to perform filter before window rendering
+		echo apply_filters( 'zoom_wp_before_window_content', $content );
+
+		$display = ob_get_clean();
+
+		return $display;
+	}
+
+	public function lm_zoom_main_cron_sync_user_meeting_data() {
+		if ( ! defined( 'DOING_CRON' ) ) {
+			return;
+		}
+
+		if ( 1 != get_option( 'zoom_hide_recordings' ) ) {
+			$this->get_upload_user_meetings();
+		}
 	}
 }

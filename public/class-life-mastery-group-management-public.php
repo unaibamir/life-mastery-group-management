@@ -125,6 +125,14 @@ class Life_Mastery_Group_Management_Public {
 	}
 
 	public function init() {
+
+		if ( ! wp_next_scheduled( 'lm_zoom_sync_user_meetings_recordings' ) ) {
+			wp_schedule_event( time() + ( MINUTE_IN_SECONDS * 2 ), 'sixhours', 'lm_zoom_sync_user_meetings_recordings' );
+		}
+
+		add_action( 'lm_zoom_sync_user_meetings_recordings', array( $this, 'get_upload_user_meetings' ) );
+
+
 		if( isset($_GET["user_meetings"]) ) {
 			$this->get_upload_user_meetings();
 		}
@@ -1538,13 +1546,17 @@ class Life_Mastery_Group_Management_Public {
 
 					// lets get user's zoom meeting and recordings
 					$meeting_recordings = lm_helper()->get_user_meeting_recordings( $user_id, $meeting_id );
-
+					
 					if( empty($meeting_recordings) ) {
 						continue;
 					}
 
 					// loop through available meeting recordinds and process futher
 					foreach( $meeting_recordings as $meeting_key => $meeting_recording ) {
+
+						if( !isset( $meeting_recording->recording_files ) || empty( $meeting_recording->recording_files ) ) {
+							continue;
+						}
 
 						$recordings = array();
 
@@ -1732,12 +1744,10 @@ class Life_Mastery_Group_Management_Public {
 	}
 
 	public function lm_zoom_main_cron_sync_user_meeting_data() {
-		if ( ! defined( 'DOING_CRON' ) ) {
+		/*if ( ! defined( 'DOING_CRON' ) ) {
 			return;
-		}
+		}*/
 
-		if ( 1 != get_option( 'zoom_hide_recordings' ) ) {
-			$this->get_upload_user_meetings();
-		}
+		$this->get_upload_user_meetings();
 	}
 }

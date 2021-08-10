@@ -223,7 +223,7 @@ class Life_Mastery_Group_Management {
 
 		add_shortcode( 'lm_zoom_api_link', array( $plugin_public, 'lm_zoom_api_link_shortcode_callback' ) );
 
-		$this->loader->add_action( 'lm_zoom_wp_main_cron_sync_data_hook', $plugin_public, 'lm_zoom_main_cron_sync_user_meeting_data' );
+		//$this->loader->add_action( 'lm_zoom_wp_main_cron_sync_data_hook', $plugin_public, 'lm_zoom_main_cron_sync_user_meeting_data' );
 
 	}
 

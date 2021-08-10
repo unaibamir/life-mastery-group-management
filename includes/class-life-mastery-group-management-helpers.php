@@ -1698,6 +1698,8 @@ class LM_Helper {
 					} elseif( $recording_file->recording_type == 'gallery_view' ) {
 						$groups_zoom_meeting[ $meeting_key ]->recording_files = array( $recording_file );
 						break;
+					} else {
+						unset( $groups_zoom_meeting[ $meeting_key ]->recording_files[$file_key] );
 					}
 				}
 			}
